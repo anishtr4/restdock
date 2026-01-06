@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Copy, Check, WrapText, Download } from "lucide-react";
-// import "./ResponsePanel.css"; // Temporarily disabled during Tailwind migration
 
 interface ResponsePanelProps {
     response: any;
@@ -13,11 +12,11 @@ const ResponsePanel = ({ response, loading }: ResponsePanelProps) => {
     const [wordWrap, setWordWrap] = useState(true);
 
     const getStatusClass = (status: number) => {
-        if (status >= 200 && status < 300) return 'success';
-        if (status >= 300 && status < 400) return 'redirect';
-        if (status >= 400 && status < 500) return 'client-error';
-        if (status >= 500) return 'server-error';
-        return 'neutral';
+        if (status >= 200 && status < 300) return 'text-emerald-600 bg-emerald-50';
+        if (status >= 300 && status < 400) return 'text-blue-600 bg-blue-50';
+        if (status >= 400 && status < 500) return 'text-amber-600 bg-amber-50';
+        if (status >= 500) return 'text-red-600 bg-red-50';
+        return 'text-gray-600 bg-gray-50';
     };
 
     const getStatusText = (status: number) => {
@@ -50,76 +49,82 @@ const ResponsePanel = ({ response, loading }: ResponsePanelProps) => {
     const syntaxHighlight = (json: string) => {
         json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-            let cls = 'json-number';
+            let cls = 'text-blue-600';
             if (/^"/.test(match)) {
                 if (/:$/.test(match)) {
-                    cls = 'json-key';
+                    cls = 'text-purple-600 font-medium';
                 } else {
-                    cls = 'json-string';
+                    cls = 'text-emerald-600';
                 }
             } else if (/true|false/.test(match)) {
-                cls = 'json-boolean';
+                cls = 'text-amber-600';
             } else if (/null/.test(match)) {
-                cls = 'json-null';
+                cls = 'text-gray-500';
             }
             return '<span class="' + cls + '">' + match + '</span>';
         });
     };
 
     return (
-        <div className="response-panel">
-            {/* Single unified header bar */}
-            <div className="response-unified-header">
-                <div className="response-title-status">
-                    <h3>Response</h3>
+        <div className="flex flex-col h-full bg-background">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="flex items-center gap-3">
+                    <h3 className="text-sm font-semibold uppercase text-muted-foreground">Response</h3>
                     {response && !response.error && (
                         <>
-                            <span className={`compact-status ${getStatusClass(response.status)}`}>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusClass(response.status)}`}>
                                 {response.status} {getStatusText(response.status)}
                             </span>
-                            <span className="compact-meta">{response.time}ms</span>
-                            <span className="compact-meta">{response.size}B</span>
+                            <span className="text-xs text-muted-foreground">{response.time}ms</span>
+                            <span className="text-xs text-muted-foreground">{response.size}B</span>
                         </>
                     )}
                 </div>
 
                 {!loading && response && !response.error && (
-                    <div className="response-actions">
+                    <div className="flex items-center gap-1">
                         <button
-                            className="action-btn"
+                            className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent"
                             onClick={handleCopy}
                             title="Copy to clipboard"
                         >
-                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </button>
                         <button
-                            className="action-btn"
+                            className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent"
                             onClick={() => setWordWrap(!wordWrap)}
                             title="Toggle word wrap"
                         >
-                            <WrapText size={14} />
+                            <WrapText className="h-4 w-4" />
                         </button>
                         <button
-                            className="action-btn"
+                            className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent"
                             title="Download response"
                         >
-                            <Download size={14} />
+                            <Download className="h-4 w-4" />
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* Tabs - only show when we have a response */}
+            {/* Tabs */}
             {!loading && response && !response.error && (
-                <div className="response-tabs">
+                <div className="flex border-b">
                     <button
-                        className={`tab-btn ${activeTab === 'body' ? 'active' : ''}`}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'body'
+                                ? 'border-primary text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                         onClick={() => setActiveTab('body')}
                     >
                         Body
                     </button>
                     <button
-                        className={`tab-btn ${activeTab === 'headers' ? 'active' : ''}`}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'headers'
+                                ? 'border-primary text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
                         onClick={() => setActiveTab('headers')}
                     >
                         Headers
@@ -127,26 +132,26 @@ const ResponsePanel = ({ response, loading }: ResponsePanelProps) => {
                 </div>
             )}
 
-            {/* Content area */}
-            <div className="response-content">
+            {/* Content */}
+            <div className="flex-1 overflow-auto">
                 {loading ? (
-                    <div className="center-state">
-                        <div className="spinner"></div>
-                        <span>Sending Request...</span>
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+                        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm">Sending Request...</span>
                     </div>
                 ) : response ? (
                     response.error ? (
-                        <div className="center-state error-state">
-                            <div className="error-icon">⚠️</div>
-                            <div className="error-title">Request Failed</div>
-                            <div className="error-message">{response.error}</div>
+                        <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+                            <div className="text-4xl">⚠️</div>
+                            <div className="text-lg font-semibold text-destructive">Request Failed</div>
+                            <div className="text-sm text-muted-foreground max-w-md">{response.error}</div>
                         </div>
                     ) : (
                         <>
                             {activeTab === 'body' && (
-                                <div className={`json-content ${wordWrap ? 'wrap' : 'nowrap'}`}>
+                                <div className="p-4">
                                     <pre
-                                        className="json-code"
+                                        className={`text-sm font-mono ${wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre'}`}
                                         dangerouslySetInnerHTML={{
                                             __html: syntaxHighlight(formatJSON(response.body))
                                         }}
@@ -154,17 +159,19 @@ const ResponsePanel = ({ response, loading }: ResponsePanelProps) => {
                                 </div>
                             )}
                             {activeTab === 'headers' && (
-                                <div className="headers-content">
+                                <div className="p-4">
                                     {response.headers && Object.keys(response.headers).length > 0 ? (
-                                        Object.entries(response.headers).map(([key, value]) => (
-                                            <div key={key} className="header-item">
-                                                <span className="header-key">{key}</span>
-                                                <span className="header-value">{String(value)}</span>
-                                            </div>
-                                        ))
+                                        <div className="space-y-2">
+                                            {Object.entries(response.headers).map(([key, value]) => (
+                                                <div key={key} className="flex gap-4 text-sm">
+                                                    <span className="font-medium text-foreground min-w-[200px]">{key}</span>
+                                                    <span className="text-muted-foreground">{String(value)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : (
-                                        <div className="center-state">
-                                            <span>No headers available</span>
+                                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                                            <span className="text-sm">No headers available</span>
                                         </div>
                                     )}
                                 </div>
@@ -172,10 +179,10 @@ const ResponsePanel = ({ response, loading }: ResponsePanelProps) => {
                         </>
                     )
                 ) : (
-                    <div className="center-state">
-                        <div className="empty-icon">📡</div>
-                        <span className="empty-title">No Response Yet</span>
-                        <span className="empty-subtitle">Send a request to see the response here</span>
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+                        <div className="text-4xl">📡</div>
+                        <span className="text-lg font-semibold">No Response Yet</span>
+                        <span className="text-sm text-muted-foreground">Send a request to see the response here</span>
                     </div>
                 )}
             </div>
