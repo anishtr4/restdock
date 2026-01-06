@@ -195,88 +195,110 @@ const RequestPanel = ({
     };
 
     return (
-        <div className="request-panel">
-            <div className="request-bar-container">
-                <div className="request-bar-wrapper">
-                    <div className={`method-select-wrapper ${request.method.toLowerCase()}`}>
-                        <select
-                            className="method-select"
-                            value={request.method}
-                            onChange={(e) => updateMethod(e.target.value as RequestMethod)}
-                        >
-                            {methods.map((m) => (
-                                <option key={m} value={m}>
-                                    {m}
-                                </option>
+        <div className="flex flex-col h-full">
+            {/* Request Bar */}
+            <div className="flex items-center gap-2 p-4 border-b bg-background">
+                {/* Method Select */}
+                <div className="relative">
+                    <select
+                        className="h-9 px-3 pr-8 rounded-md border border-input bg-background text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                        value={request.method}
+                        onChange={(e) => updateMethod(e.target.value as RequestMethod)}
+                    >
+                        {methods.map((m) => (
+                            <option key={m} value={m}>
+                                {m}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+                </div>
+
+                {/* URL Input */}
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        className="h-9 w-full px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder="Enter request URL"
+                        value={request.url}
+                        onChange={(e) => updateUrl(e.target.value, e.target.selectionStart || 0)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    />
+                    {autocomplete && autocomplete.show && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-60 overflow-auto">
+                            {autocomplete.suggestions.map((v, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                    onClick={() => insertVariable(v.key)}
+                                >
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
+                                </div>
                             ))}
-                        </select>
-                        <ChevronDown size={14} className="select-chevron" />
-                    </div>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <input
-                            type="text"
-                            className="url-input"
-                            placeholder="Enter request URL"
-                            value={request.url}
-                            onChange={(e) => updateUrl(e.target.value, e.target.selectionStart || 0)}
-                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                        />
-                        {autocomplete && autocomplete.show && (
-                            <div className="url-autocomplete-dropdown">
-                                {autocomplete.suggestions.map((v, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="url-autocomplete-item"
-                                        onClick={() => insertVariable(v.key)}
-                                    >
-                                        <code>{`{{${v.key}}}`}</code>
-                                        <span className="autocomplete-value">{v.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
-                <div className="action-buttons">
-                    <button className="send-btn" onClick={handleSend}>
-                        <Send size={16} />
-                        <span>Run</span>
-                    </button>
-                    <button className="save-btn" onClick={onSave}>
-                        <Save size={16} />
-                        <span>Save</span>
-                    </button>
-                </div>
+
+                {/* Action Buttons */}
+                <button
+                    className="h-9 px-4 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2"
+                    onClick={handleSend}
+                >
+                    <Send className="h-4 w-4" />
+                    <span>Run</span>
+                </button>
+                <button
+                    className="h-9 px-4 border border-input bg-background rounded-md text-sm font-medium hover:bg-accent flex items-center gap-2"
+                    onClick={onSave}
+                >
+                    <Save className="h-4 w-4" />
+                    <span>Save</span>
+                </button>
             </div>
 
-            <div className="request-tabs-header">
+            {/* Tabs Header */}
+            <div className="flex border-b bg-background">
                 <div
-                    className={`tab-item ${activeTab === 'params' ? 'active' : ''}`}
+                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'params'
+                            ? 'border-primary text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     onClick={() => setActiveTab('params')}
                 >
                     Params
                 </div>
                 <div
-                    className={`tab-item ${activeTab === 'auth' ? 'active' : ''}`}
+                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'auth'
+                            ? 'border-primary text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     onClick={() => setActiveTab('auth')}
                 >
                     Authorization
                 </div>
                 <div
-                    className={`tab-item ${activeTab === 'headers' ? 'active' : ''}`}
+                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'headers'
+                            ? 'border-primary text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     onClick={() => setActiveTab('headers')}
                 >
                     Headers
                 </div>
                 <div
-                    className={`tab-item ${activeTab === 'body' ? 'active' : ''}`}
+                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'body'
+                            ? 'border-primary text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
                     onClick={() => setActiveTab('body')}
                 >
                     Body
                 </div>
             </div>
 
-            <div className="request-tabs-content">
+            {/* Tabs Content */}
+            <div className="flex-1 overflow-auto p-4">
                 {activeTab === 'params' && (
                     <KeyValueEditor
                         items={request.params || []}
