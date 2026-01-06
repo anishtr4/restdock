@@ -1,0 +1,87 @@
+.activity-bar {
+    width: 64px;
+    /* Reduced from 72px */
+    background-color: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    /* Main container starts with padding */
+    box-sizing: border-box;
+    /* Prevent padding from adding to height */
+}
+
+.activity-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+    /* Reduced to 16px */
+    padding-top: 24px;
+}
+
+.activity-item {
+    width: 44px;
+    /* Reduced from 48px */
+    height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    border-radius: 12px;
+    /* Softer rounded corners */
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.activity-item:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.activity-item.active {
+    background-color: #eff6ff;
+    color: var(--accent-color);
+}
+
+.activity-item span {
+    font-size: 9px;
+    /* Reduced font */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.activity-spacer {
+    flex: 1;
+    /* Pushes bottom section to the bottom */
+}
+
+.activity-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 8px;
+}
+
+.settings-item {
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.settings-item:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}

@@ -1,0 +1,179 @@
+.kv-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+    /* Prevent editor from expanding */
+    height: 100%;
+    /* Take full available height */
+    min-height: 0;
+}
+
+.kv-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    /* Scroll rows internally */
+    flex: 1;
+    /* Expand to fill space */
+    padding-bottom: 8px;
+}
+
+/* Custom Scrollbar for Table */
+.kv-table::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.kv-table::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.kv-table::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.kv-table::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Clean Header */
+.kv-header {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 1fr 40px;
+    /* Equal width columns for K/V/Desc */
+    gap: 12px;
+    padding: 8px 12px;
+    background-color: var(--bg-primary);
+    /* Opaque background for sticky behavior */
+    /* Removed border for seamless look */
+    border-bottom: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* ... existing styles ... */
+
+.kv-header-add-btn {
+    background-color: var(--accent-color);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.kv-header-add-btn:hover {
+    background-color: var(--accent-hover, #1d4ed8);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.kv-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 1fr 40px;
+    gap: 12px;
+    padding: 6px 12px;
+    align-items: center;
+    border-bottom: 1px solid transparent;
+}
+
+.kv-row:hover {
+    background-color: transparent;
+}
+
+.kv-row input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    /* Light gray box */
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.15s;
+    font-weight: 400;
+}
+
+.kv-row input[type="text"]:focus {
+    background-color: var(--bg-input);
+    /* Keep same background or slightly lighter if needed, but remove border conflict */
+    border-color: transparent;
+    box-shadow: none;
+    /* Or keeping a subtle ring? User said 'remove border', so let's go clean */
+    outline: 2px solid var(--accent-color);
+    /* Use outline for accessibility if needed, or maybe just text color change? */
+    /* Let's try purely seamless: */
+    outline: none;
+
+
+
+    .kv-add-btn:hover {
+        background-color: var(--bg-input);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
+
+    /* Autocomplete Dropdown */
+    .kv-autocomplete-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+
+    .kv-autocomplete-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        transition: background-color 0.15s;
+        border-bottom: 1px solid var(--bg-input);
+    }
+
+    .kv-autocomplete-item:last-child {
+        border-bottom: none;
+    }
+
+    .kv-autocomplete-item:hover {
+        background-color: var(--bg-input);
+    }
+
+    .kv-autocomplete-item code {
+        font-family: 'Fira Code', 'Consolas', monospace;
+        font-size: 0.8125rem;
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+
+    .kv-autocomplete-value {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 150px;
+    }

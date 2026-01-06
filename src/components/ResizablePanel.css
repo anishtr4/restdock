@@ -1,0 +1,60 @@
+.resizable-panel {
+    position: relative;
+    transition: none;
+    /* Disable during resize */
+    overflow: hidden;
+    /* Prevent content from expanding panel */
+}
+
+.resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    /* Increased from 10px for better grip */
+    cursor: ew-resize;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resize-handle.left {
+    right: -8px;
+    /* Adjusted for wider handle */
+}
+
+.resize-handle.right {
+    left: -8px;
+    /* Adjusted for wider handle */
+}
+
+.resize-handle-line {
+    width: 3px;
+    /* Increased from 2px */
+    height: 50px;
+    /* Increased from 40px */
+    background-color: var(--border-color);
+    /* Always visible */
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.resize-handle:hover .resize-handle-line {
+    background-color: var(--accent-color);
+    height: 70px;
+    /* Increased size on hover */
+    width: 4px;
+}
+
+.resize-handle:active .resize-handle-line {
+    background-color: var(--accent-color);
+    height: 100px;
+    /* Even larger when dragging */
+    width: 4px;
+}
+
+/* Visual feedback during resize */
+.resizable-panel:has(.resize-handle:active) {
+    user-select: none;
+}

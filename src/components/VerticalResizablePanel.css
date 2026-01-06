@@ -1,0 +1,54 @@
+.vertical-resizable-panel {
+    position: relative;
+    transition: none;
+    overflow: visible;
+    min-height: 0;
+    /* CRITICAL: Allows panel to be smaller than its content */
+    display: flex;
+    flex-direction: column;
+}
+
+.vertical-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 16px;
+    cursor: ns-resize;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vertical-resize-handle.top {
+    bottom: -8px;
+}
+
+.vertical-resize-handle.bottom {
+    top: -8px;
+}
+
+.vertical-resize-handle-line {
+    height: 3px;
+    width: 50px;
+    background-color: var(--border-color);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.vertical-resize-handle:hover .vertical-resize-handle-line {
+    background-color: var(--accent-color);
+    width: 70px;
+    height: 4px;
+}
+
+.vertical-resize-handle:active .vertical-resize-handle-line {
+    background-color: var(--accent-color);
+    width: 100px;
+    height: 4px;
+}
+
+/* Visual feedback during resize */
+.vertical-resizable-panel:has(.vertical-resize-handle:active) {
+    user-select: none;
+}
