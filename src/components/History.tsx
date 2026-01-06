@@ -1,5 +1,5 @@
 import { Clock } from "lucide-react";
-import "./History.css";
+// import "./History.css"; // Temporarily disabled during Tailwind migration
 
 interface HistoryEntry {
     id: string;

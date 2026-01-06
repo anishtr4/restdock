@@ -1,5 +1,5 @@
 import { Layers, Ghost, Clock, Settings } from "lucide-react";
-import "./ActivityBar.css";
+// import "./ActivityBar.css"; // Temporarily disabled during Tailwind migration
 
 interface ActivityBarProps {
     activeView: string;

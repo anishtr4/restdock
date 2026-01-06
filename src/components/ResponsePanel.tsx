@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, WrapText, Download } from "lucide-react";
-import "./ResponsePanel.css";
+// import "./ResponsePanel.css"; // Temporarily disabled during Tailwind migration
 
 interface ResponsePanelProps {
     response: any;

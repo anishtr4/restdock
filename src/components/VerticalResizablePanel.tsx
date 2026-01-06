@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, ReactNode } from "react";
-import "./VerticalResizablePanel.css";
+// import "./VerticalResizablePanel.css"; // Temporarily disabled during Tailwind migration
 
 interface VerticalResizablePanelProps {
     defaultHeight: number;

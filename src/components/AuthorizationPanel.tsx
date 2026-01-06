@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import "./AuthorizationPanel.css";
+// import "./AuthorizationPanel.css"; // Temporarily disabled during Tailwind migration
 
 interface AuthData {
     type: 'none' | 'bearer' | 'basic' | 'apiKey' | 'oauth2';

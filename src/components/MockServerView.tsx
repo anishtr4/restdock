@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Play, Square, Plus, Trash2, Server, MoreVertical } from "lucide-react";
 import { dbService } from "../services/db";
-import "./MockServerView.css";
+// import "./MockServerView.css"; // Temporarily disabled during Tailwind migration
 
 const METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
 

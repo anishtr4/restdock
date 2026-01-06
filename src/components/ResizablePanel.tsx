@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, ReactNode } from "react";
-import "./ResizablePanel.css";
+// import "./ResizablePanel.css"; // Temporarily disabled during Tailwind migration
 
 interface ResizablePanelProps {
     defaultWidth: number;

@@ -1,4 +1,4 @@
-import "./Sidebar.css";
+// import "./Sidebar.css"; // Temporarily disabled during Tailwind migration
 
 const Sidebar = () => {
     return (

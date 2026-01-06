@@ -1,6 +1,6 @@
 import { X, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import "./VariablesModal.css";
+// import "./VariablesModal.css"; // Temporarily disabled during Tailwind migration
 
 interface Variable {
     key: string;

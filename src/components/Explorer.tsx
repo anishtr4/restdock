@@ -3,7 +3,7 @@ import { ChevronRight, FolderOpen, Folder, Plus, Trash2, Sliders } from "lucide-
 import { Collection, RequestData, Folder as FolderType } from "../App";
 import ConfirmDialog from "./ConfirmDialog";
 import VariablesModal from "./VariablesModal";
-import "./Explorer.css";
+// import "./Explorer.css"; // Temporarily disabled during Tailwind migration
 
 interface ExplorerProps {
     collections: Collection[];

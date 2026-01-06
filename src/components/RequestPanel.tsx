@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChevronDown, Send, Save } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { RequestMethod, RequestData } from "../App";
-import "./RequestPanel.css";
+// import "./RequestPanel.css"; // Temporarily disabled during Tailwind migration
 import KeyValueEditor from "./KeyValueEditor";
 import AuthorizationPanel, { AuthData } from "./AuthorizationPanel";
 import BodyEditor from "./BodyEditor";

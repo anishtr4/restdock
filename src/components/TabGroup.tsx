@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { X, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tab } from "../App";
-import "./TabGroup.css";
+// import "./TabGroup.css"; // Temporarily disabled during Tailwind migration
 
 interface TabGroupProps {
     tabs: Tab[];

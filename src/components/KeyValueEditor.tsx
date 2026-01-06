@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Trash2, Plus } from "lucide-react";
-import "./KeyValueEditor.css";
+// import "./KeyValueEditor.css"; // Temporarily disabled during Tailwind migration
 
 interface KeyValue {
     key: string;

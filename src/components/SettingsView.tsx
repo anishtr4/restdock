@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import "./SettingsView.css";
+// import "./SettingsView.css"; // Temporarily disabled during Tailwind migration
 import KeyValueEditor from "./KeyValueEditor";
 import { Globe, Palette, Monitor } from "lucide-react";
 

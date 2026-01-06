@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import "./ConfirmDialog.css";
+// import "./ConfirmDialog.css"; // Temporarily disabled during Tailwind migration
 
 interface ConfirmDialogProps {
     isOpen: boolean;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import KeyValueEditor from "./KeyValueEditor";
-import "./BodyEditor.css";
+// import "./BodyEditor.css"; // Temporarily disabled during Tailwind migration
 
 interface BodyData {
     type: 'none' | 'json' | 'raw' | 'formdata';
