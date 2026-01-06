@@ -1,6 +1,23 @@
-import { X, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-// import "./VariablesModal.css"; // Temporarily disabled during Tailwind migration
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Variable {
     key: string;
@@ -18,14 +35,14 @@ interface VariablesModalProps {
 
 const VariablesModal = ({ isOpen, collectionName, variables, onSave, onClose }: VariablesModalProps) => {
     const [localVariables, setLocalVariables] = useState<Variable[]>(variables);
+    // Autocomplete state preserved but implementation simplified for this modal context if needed
+    // For now, we'll keep the logic but adapt the UI
     const [autocomplete, setAutocomplete] = useState<{
         active: boolean;
         variableIndex: number;
         cursorPosition: number;
         suggestions: Variable[];
     } | null>(null);
-
-    if (!isOpen) return null;
 
     const handleAddVariable = () => {
         setLocalVariables([...localVariables, { key: '', value: '', enabled: true }]);
@@ -89,82 +106,100 @@ const VariablesModal = ({ isOpen, collectionName, variables, onSave, onClose }: 
     };
 
     return (
-        <div className="variables-overlay" onClick={onClose}>
-            <div className="variables-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="variables-header">
-                    <div>
-                        <h3>Collection Variables</h3>
-                        <p className="collection-name">{collectionName}</p>
-                    </div>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Collection Variables</DialogTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Manage variables for <span className="font-medium text-foreground">{collectionName}</span>
+                    </p>
+                </DialogHeader>
 
-                <div className="variables-body">
-                    <div className="variables-table">
-                        <div className="table-header">
-                            <div className="col-checkbox"></div>
-                            <div className="col-key">Key</div>
-                            <div className="col-value">Value</div>
-                            <div className="col-actions"></div>
-                        </div>
-
-                        <div className="table-body">
+                <div className="flex-1 overflow-auto py-4">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]"></TableHead>
+                                <TableHead>Key</TableHead>
+                                <TableHead>Value</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {localVariables.map((variable, index) => (
-                                <div key={index} className="table-row">
-                                    <div className="col-checkbox">
-                                        <input
-                                            type="checkbox"
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        <Checkbox
                                             checked={variable.enabled}
-                                            onChange={(e) => handleUpdateVariable(index, 'enabled', e.target.checked)}
+                                            onCheckedChange={(checked) => handleUpdateVariable(index, 'enabled', checked === true)}
                                         />
-                                    </div>
-                                    <div className="col-key">
-                                        <input
-                                            type="text"
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input
                                             placeholder="Variable name"
                                             value={variable.key}
                                             onChange={(e) => handleUpdateVariable(index, 'key', e.target.value)}
+                                            className="h-8"
                                         />
-                                    </div>
-                                    <div className="col-value">
-                                        <input
-                                            type="text"
+                                    </TableCell>
+                                    <TableCell className="relative">
+                                        <Input
                                             placeholder="Value"
                                             value={variable.value}
                                             onChange={(e) => handleUpdateVariable(index, 'value', e.target.value)}
+                                            className="h-8"
                                         />
-                                    </div>
-                                    <div className="col-actions">
-                                        <button
-                                            className="delete-var-btn"
+                                        {/* Simple Autocomplete Dropdown */}
+                                        {autocomplete && autocomplete.active && autocomplete.variableIndex === index && (
+                                            <div className="absolute top-full left-0 z-50 w-full bg-popover border rounded-md shadow-md mt-1 max-h-40 overflow-auto">
+                                                {autocomplete.suggestions.map((s, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                                        onClick={() => insertVariable(s)}
+                                                    >
+                                                        <span className="font-medium text-primary">{s.key}</span>
+                                                        <span className="ml-2 text-muted-foreground text-xs">{s.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => handleRemoveVariable(index)}
+                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                         >
                                             <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </div>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </div>
+                            {localVariables.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                                        No variables defined. Click "Add Variable" to create one.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                    <Button variant="outline" onClick={handleAddVariable}>
+                        <Plus size={16} className="mr-2" />
+                        Add Variable
+                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button onClick={handleSave}>Save Changes</Button>
                     </div>
-
-                    <button className="add-variable-btn" onClick={handleAddVariable}>
-                        <Plus size={16} />
-                        <span>Add Variable</span>
-                    </button>
-                </div>
-
-                <div className="variables-footer">
-                    <button className="cancel-btn" onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button className="save-btn" onClick={handleSave}>
-                        Save
-                    </button>
-                </div>
-            </div>
-        </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 
