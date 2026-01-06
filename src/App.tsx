@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import {
   FileText,
   History as HistoryIcon,
@@ -14,8 +9,6 @@ import {
   Server,
   Plus,
   X,
-  Play,
-  Save,
   ChevronRight,
   ChevronDown,
   Folder,
@@ -253,7 +246,7 @@ function App() {
   // Render tree items recursively
   const renderTreeItems = (items: (RequestData | Folder)[], level = 0) => {
     return items.map((item) => {
-      if (item.type === 'folder') {
+      if ('type' in item && item.type === 'folder') {
         const isExpanded = expandedFolders.has(item.id);
         return (
           <div key={item.id} style={{ marginLeft: `${level * 12}px` }}>
@@ -269,224 +262,226 @@ function App() {
           </div>
         );
       } else {
+        const request = item as RequestData;
         return (
-          <div
-            key={item.id}
-            className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
-            style={{ marginLeft: `${(level + 1) * 12}px` }}
-            onClick={() => handleSelectRequest(item)}
+  \u003cdiv
+  key = { request.id }
+  className = "flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
+  style = {{ marginLeft: `${(level + 1) * 12}px` }
+}
+onClick = {() => handleSelectRequest(request)}
           >
-            <Badge variant={getMethodVariant(item.method)} className="text-xs px-2">
-              {item.method}
+            <Badge variant={getMethodVariant(request.method)} className="text-xs px-2">
+              {request.method}
             </Badge>
-            <span className="truncate">{item.name}</span>
-          </div>
+            <span className="truncate">{request.name}</span>
+          </div >
         );
       }
     });
   };
 
-  return (
-    <div className="flex h-screen bg-background">
-      {/* Activity Bar */}
-      <div className="w-12 bg-muted border-r flex flex-col items-center py-2 gap-2">
-        <Button
-          variant={activeView === "collections" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveView("collections")}
-          className="h-10 w-10"
-        >
-          <FileText className="h-5 w-5" />
-        </Button>
-        <Button
-          variant={activeView === "history" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveView("history")}
-          className="h-10 w-10"
-        >
-          <HistoryIcon className="h-5 w-5" />
-        </Button>
-        <Button
-          variant={activeView === "mock_server" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveView("mock_server")}
-          className="h-10 w-10"
-        >
-          <Server className="h-5 w-5" />
-        </Button>
-        <div className="flex-1" />
-        <Button
-          variant={activeView === "settings" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveView("settings")}
-          className="h-10 w-10"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
-      </div>
+return (
+  <div className="flex h-screen bg-background">
+    {/* Activity Bar */}
+    <div className="w-12 bg-muted border-r flex flex-col items-center py-2 gap-2">
+      <Button
+        variant={activeView === "collections" ? "default" : "ghost"}
+        size="icon"
+        onClick={() => setActiveView("collections")}
+        className="h-10 w-10"
+      >
+        <FileText className="h-5 w-5" />
+      </Button>
+      <Button
+        variant={activeView === "history" ? "default" : "ghost"}
+        size="icon"
+        onClick={() => setActiveView("history")}
+        className="h-10 w-10"
+      >
+        <HistoryIcon className="h-5 w-5" />
+      </Button>
+      <Button
+        variant={activeView === "mock_server" ? "default" : "ghost"}
+        size="icon"
+        onClick={() => setActiveView("mock_server")}
+        className="h-10 w-10"
+      >
+        <Server className="h-5 w-5" />
+      </Button>
+      <div className="flex-1" />
+      <Button
+        variant={activeView === "settings" ? "default" : "ghost"}
+        size="icon"
+        onClick={() => setActiveView("settings")}
+        className="h-10 w-10"
+      >
+        <Settings className="h-5 w-5" />
+      </Button>
+    </div>
 
-      {/* Sidebar */}
-      {(activeView === "collections" || activeView === "history") && (
-        <div className="w-64 bg-background border-r flex flex-col">
-          <div className="p-3 border-b flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-              {activeView === "collections" ? "Explorer" : "History"}
-            </h2>
-            {activeView === "collections" && (
-              <Button variant="ghost" size="sm" className="h-7 px-2">
-                <Plus className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <div className="flex-1 overflow-auto p-2">
-            {activeView === "collections" && collections.map((collection) => {
-              const isExpanded = expandedCollections.has(collection.id);
-              return (
-                <div key={collection.id} className="mb-2">
-                  <div
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer font-medium text-sm"
-                    onClick={() => toggleCollection(collection.id)}
-                  >
-                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    <span>{collection.name}</span>
-                  </div>
-                  {isExpanded && (
-                    <div className="mt-1">
-                      {renderTreeItems(collection.items)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {activeView === "history" && history.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
-                onClick={() => {
-                  const newRequest: RequestData = {
-                    id: `h-${Date.now()}`,
-                    name: entry.url.split('/').pop() || 'Request',
-                    method: entry.method as RequestMethod,
-                    url: entry.url,
-                    headers: [],
-                    params: []
-                  };
-                  handleAddTab(newRequest);
-                }}
-              >
-                <Badge variant={getMethodVariant(entry.method)} className="text-xs px-2">
-                  {entry.method}
-                </Badge>
-                <span className="truncate flex-1">{entry.url}</span>
-              </div>
-            ))}
-          </div>
+    {/* Sidebar */}
+    {(activeView === "collections" || activeView === "history") && (
+      <div className="w-64 bg-background border-r flex flex-col">
+        <div className="p-3 border-b flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+            {activeView === "collections" ? "Explorer" : "History"}
+          </h2>
+          {activeView === "collections" && (
+            <Button variant="ghost" size="sm" className="h-7 px-2">
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {activeView === "settings" && (
-          <div className="flex-1 overflow-auto">
-            <SettingsView
-              globalVariables={globalVariables}
-              onGlobalVariablesChange={handleSaveGlobalVariables}
-              settings={settings}
-              onSettingsChange={setSettings}
-            />
-          </div>
-        )}
-
-        {activeView === "mock_server" && (
-          <div className="flex-1 overflow-auto">
-            <MockServerView />
-          </div>
-        )}
-
-        {(activeView === "collections" || activeView === "history") && (
-          <>
-            {/* Tab Bar */}
-            <div className="border-b bg-background flex items-center px-2 gap-1 overflow-x-auto">
-              {tabs.map((tab) => (
+        <div className="flex-1 overflow-auto p-2">
+          {activeView === "collections" && collections.map((collection) => {
+            const isExpanded = expandedCollections.has(collection.id);
+            return (
+              <div key={collection.id} className="mb-2">
                 <div
-                  key={tab.id}
-                  className={`flex items-center gap-2 px-3 py-2 border-b-2 cursor-pointer group ${activeTabId === tab.id
-                      ? 'border-primary bg-accent'
-                      : 'border-transparent hover:bg-accent'
-                    }`}
-                  onClick={() => setActiveTabId(tab.id)}
+                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer font-medium text-sm"
+                  onClick={() => toggleCollection(collection.id)}
                 >
-                  <Badge variant={getMethodVariant(tab.method)} className="text-xs px-1.5 py-0">
-                    {tab.method}
-                  </Badge>
-                  <span className="text-sm">{tab.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseTab(tab.id);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span>{collection.name}</span>
                 </div>
-              ))}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleAddTab()}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Request/Response Area */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 border-b overflow-auto">
-                {activeRequest ? (
-                  <RequestPanel
-                    request={activeRequest}
-                    setRequest={setActiveRequest}
-                    setResponse={(newResponse: any) => {
-                      setResponse(newResponse);
-                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
-                    }}
-                    setLoading={(isLoading: boolean) => {
-                      setLoading(isLoading);
-                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
-                    }}
-                    onSave={handleSaveRequest}
-                    onHistoryAdd={async (entry: any) => {
-                      const newEntry = {
-                        id: `h-${Date.now()}`,
-                        method: entry.method,
-                        url: entry.url,
-                        timestamp: Date.now(),
-                        status: entry.status
-                      };
-                      await dbService.addToHistory(newEntry);
-                      setHistory(prev => [newEntry, ...prev]);
-                    }}
-                    collectionVariables={collections[0]?.variables || []}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Select a request to start
+                {isExpanded && (
+                  <div className="mt-1">
+                    {renderTreeItems(collection.items)}
                   </div>
                 )}
               </div>
-              <div className="h-80 overflow-auto">
-                <ResponsePanel response={response} loading={loading} />
-              </div>
+            );
+          })}
+          {activeView === "history" && history.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
+              onClick={() => {
+                const newRequest: RequestData = {
+                  id: `h-${Date.now()}`,
+                  name: entry.url.split('/').pop() || 'Request',
+                  method: entry.method as RequestMethod,
+                  url: entry.url,
+                  headers: [],
+                  params: []
+                };
+                handleAddTab(newRequest);
+              }}
+            >
+              <Badge variant={getMethodVariant(entry.method)} className="text-xs px-2">
+                {entry.method}
+              </Badge>
+              <span className="truncate flex-1">{entry.url}</span>
             </div>
-          </>
-        )}
+          ))}
+        </div>
       </div>
+    )}
+
+    {/* Main Content */}
+    <div className="flex-1 flex flex-col">
+      {activeView === "settings" && (
+        <div className="flex-1 overflow-auto">
+          <SettingsView
+            globalVariables={globalVariables}
+            onGlobalVariablesChange={handleSaveGlobalVariables}
+            settings={settings}
+            onSettingsChange={setSettings}
+          />
+        </div>
+      )}
+
+      {activeView === "mock_server" && (
+        <div className="flex-1 overflow-auto">
+          <MockServerView />
+        </div>
+      )}
+
+      {(activeView === "collections" || activeView === "history") && (
+        <>
+          {/* Tab Bar */}
+          <div className="border-b bg-background flex items-center px-2 gap-1 overflow-x-auto">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`flex items-center gap-2 px-3 py-2 border-b-2 cursor-pointer group ${activeTabId === tab.id
+                  ? 'border-primary bg-accent'
+                  : 'border-transparent hover:bg-accent'
+                  }`}
+                onClick={() => setActiveTabId(tab.id)}
+              >
+                <Badge variant={getMethodVariant(tab.method)} className="text-xs px-1.5 py-0">
+                  {tab.method}
+                </Badge>
+                <span className="text-sm">{tab.name}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseTab(tab.id);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleAddTab()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Request/Response Area */}
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 border-b overflow-auto">
+              {activeRequest ? (
+                <RequestPanel
+                  request={activeRequest}
+                  setRequest={setActiveRequest}
+                  setResponse={(newResponse: any) => {
+                    setResponse(newResponse);
+                    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
+                  }}
+                  setLoading={(isLoading: boolean) => {
+                    setLoading(isLoading);
+                    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
+                  }}
+                  onSave={handleSaveRequest}
+                  onHistoryAdd={async (entry: any) => {
+                    const newEntry = {
+                      id: `h-${Date.now()}`,
+                      method: entry.method,
+                      url: entry.url,
+                      timestamp: Date.now(),
+                      status: entry.status
+                    };
+                    await dbService.addToHistory(newEntry);
+                    setHistory(prev => [newEntry, ...prev]);
+                  }}
+                  collectionVariables={collections[0]?.variables || []}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Select a request to start
+                </div>
+              )}
+            </div>
+            <div className="h-80 overflow-auto">
+              <ResponsePanel response={response} loading={loading} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
-  );
+  </div>
+);
 }
 
 export default App;
