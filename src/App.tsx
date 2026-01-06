@@ -151,6 +151,22 @@ function App() {
     initDb();
   }, []);
 
+  // Initialize active request for the first tab
+  useEffect(() => {
+    if (!activeRequest && tabs.length > 0) {
+      const blankRequest: RequestData = {
+        id: `r-${Date.now()}`,
+        name: "Untitled Request",
+        method: "GET",
+        url: "",
+        headers: [],
+        params: []
+      };
+      setActiveRequest(blankRequest);
+    }
+  }, []);
+
+
   // Recursive search helper
   const findRequestById = (items: any[], id: string): RequestData | undefined => {
     for (const item of items) {
