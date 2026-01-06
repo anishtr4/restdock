@@ -873,3 +873,230 @@
 .empty-state-text {
     font-size: 0.875rem;
 }
+
+/* Editor Top Bar */
+.editor-top-bar {
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.method-path-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.method-select-wrapper {
+    position: relative;
+}
+
+.bare-select {
+    padding: 0.5rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.375rem;
+    background: hsl(var(--background));
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bare-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.bare-input {
+    padding: 0.5rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.375rem;
+    background: hsl(var(--background));
+    font-size: 0.875rem;
+}
+
+.bare-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.path-input {
+    flex: 1;
+    font-family: monospace;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.primary-btn.sm {
+    height: 2rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Editor Settings Bar */
+.editor-settings-bar {
+    padding: 0.75rem 1rem;
+    background: hsl(var(--muted) / 0.3);
+    border-bottom: 1px solid hsl(var(--border));
+    display: flex;
+    gap: 1.5rem;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setting-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+}
+
+.setting-group .bare-input {
+    width: 80px;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+/* Editor Tabs */
+.editor-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+}
+
+.editor-tab {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.editor-tab:hover {
+    color: hsl(var(--foreground));
+    background: hsl(var(--accent) / 0.5);
+}
+
+.editor-tab.active {
+    color: hsl(var(--foreground));
+    border-bottom-color: hsl(var(--primary));
+    background: transparent;
+}
+
+/* Editor Body */
+.editor-body {
+    padding: 1rem;
+    overflow: auto;
+}
+
+.params-editor,
+.auth-editor,
+.headers-editor,
+.body-editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.editor-help-text {
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+    margin: 0 0 0.5rem 0;
+}
+
+/* Header Row (for params, headers, etc.) */
+.header-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.header-input {
+    padding: 0.5rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.375rem;
+    background: hsl(var(--background));
+    font-size: 0.875rem;
+}
+
+.header-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.header-input::placeholder {
+    color: hsl(var(--muted-foreground));
+}
+
+/* Add/Remove buttons in header rows */
+.header-row button {
+    height: 2rem;
+    width: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--input));
+    background: hsl(var(--background));
+    cursor: pointer;
+    color: hsl(var(--muted-foreground));
+}
+
+.header-row button:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+}
+
+.header-row button.danger:hover {
+    background: hsl(var(--destructive) / 0.1);
+    color: hsl(var(--destructive));
+    border-color: hsl(var(--destructive));
+}
+
+/* Response Body Textarea */
+.response-body-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.375rem;
+    background: hsl(var(--background));
+    font-family: monospace;
+    font-size: 0.875rem;
+    resize: vertical;
+}
+
+.response-body-textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+/* Compact dashboard header variant */
+.dashboard-header.compact {
+    padding: 0.75rem 1rem;
+}
+
+/* Active state for secondary button */
+.secondary-btn.active {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--primary));
+}
