@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-// import "./AuthorizationPanel.css"; // Temporarily disabled during Tailwind migration
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface AuthData {
     type: 'none' | 'bearer' | 'basic' | 'apiKey' | 'oauth2';
@@ -21,7 +22,6 @@ const AuthorizationPanel = ({
     onChange,
     collectionVariables = []
 }: AuthorizationPanelProps) => {
-    // Use props directly - default to 'none' if not provided
     const currentAuth: AuthData = auth || { type: 'none' };
 
     const [autocomplete, setAutocomplete] = useState<{
@@ -34,7 +34,6 @@ const AuthorizationPanel = ({
     const handleTypeChange = (type: AuthData['type']) => {
         const newAuth: AuthData = { type };
 
-        // Initialize default values for each type
         if (type === 'bearer') {
             newAuth.bearer = { token: '' };
         } else if (type === 'basic') {
@@ -63,7 +62,6 @@ const AuthorizationPanel = ({
             if (field === 'accessToken') newAuth.oauth2.accessToken = value;
             else if (field === 'tokenType') newAuth.oauth2.tokenType = value;
         }
-
 
         onChange?.(newAuth);
 
@@ -100,7 +98,7 @@ const AuthorizationPanel = ({
         } else if (currentAuth.type === 'apiKey' && currentAuth.apiKey) {
             currentValue = field === 'key' ? currentAuth.apiKey.key : currentAuth.apiKey.value;
         } else if (currentAuth.type === 'oauth2' && currentAuth.oauth2) {
-            currentValue = currentAuth.oauth2.accessToken;
+            currentValue = field === 'accessToken' ? currentAuth.oauth2.accessToken : currentAuth.oauth2.tokenType;
         }
 
         const beforeMatch = currentValue.substring(0, currentValue.lastIndexOf('{{'));
@@ -109,57 +107,62 @@ const AuthorizationPanel = ({
         setAutocomplete(null);
     };
 
+    const handleApiKeyAddToChange = (addTo: 'header' | 'query') => {
+        if (currentAuth.type === 'apiKey' && currentAuth.apiKey) {
+            const newAuth = { ...currentAuth };
+            newAuth.apiKey!.addTo = addTo;
+            onChange?.(newAuth);
+        }
+    };
+
     return (
-        <div className="auth-panel">
-            {/* Header / Type Selector */}
-            <div className="auth-type-section">
-                <label>Auth Type</label>
-                <div className="auth-type-dropdown-wrapper">
-                    <select
-                        className="auth-type-select"
-                        value={currentAuth.type}
-                        onChange={(e) => handleTypeChange(e.target.value as AuthData['type'])}
-                    >
-                        <option value="none">No Auth</option>
-                        <option value="bearer">Bearer Token</option>
-                        <option value="basic">Basic Auth</option>
-                        <option value="apiKey">API Key</option>
-                        <option value="oauth2">OAuth 2.0</option>
-                    </select>
-                    <ChevronDown size={14} className="auth-type-chevron" />
-                </div>
+        <div className="space-y-4">
+            {/* Auth Type Selector */}
+            <div className="space-y-2">
+                <Label>Auth Type</Label>
+                <Select value={currentAuth.type} onValueChange={(value) => handleTypeChange(value as AuthData['type'])}>
+                    <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select auth type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">No Auth</SelectItem>
+                        <SelectItem value="bearer">Bearer Token</SelectItem>
+                        <SelectItem value="basic">Basic Auth</SelectItem>
+                        <SelectItem value="apiKey">API Key</SelectItem>
+                        <SelectItem value="oauth2">OAuth 2.0</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Content Area */}
-            <div className="auth-config-container">
-
+            <div className="space-y-4">
                 {currentAuth.type === 'none' && (
-                    <div className="no-auth-message">
+                    <div className="text-sm text-muted-foreground py-4">
                         This request does not use any authorization.
                     </div>
                 )}
 
                 {currentAuth.type === 'bearer' && currentAuth.bearer && (
-                    <div className="form-group">
-                        <label>Token</label>
-                        <div className="form-input-wrapper">
-                            <input
+                    <div className="space-y-2">
+                        <Label htmlFor="bearer-token">Token</Label>
+                        <div className="relative">
+                            <Input
+                                id="bearer-token"
                                 type="text"
-                                className="form-input"
                                 placeholder="Enter bearer token"
                                 value={currentAuth.bearer.token}
                                 onChange={(e) => handleFieldChange('token', e.target.value)}
                             />
                             {autocomplete && autocomplete.show && autocomplete.field === 'token' && (
-                                <div className="autocomplete-menu">
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                     {autocomplete.suggestions.map((v, idx) => (
                                         <div
                                             key={idx}
-                                            className="autocomplete-option"
+                                            className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                             onClick={() => insertVariable('token', v.key)}
                                         >
-                                            <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                            <span className="autocomplete-preview">{v.value}</span>
+                                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                            <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -170,52 +173,52 @@ const AuthorizationPanel = ({
 
                 {currentAuth.type === 'basic' && currentAuth.basic && (
                     <>
-                        <div className="form-group">
-                            <label>Username</label>
-                            <div className="form-input-wrapper">
-                                <input
+                        <div className="space-y-2">
+                            <Label htmlFor="basic-username">Username</Label>
+                            <div className="relative">
+                                <Input
+                                    id="basic-username"
                                     type="text"
-                                    className="form-input"
                                     placeholder="Username"
                                     value={currentAuth.basic.username}
                                     onChange={(e) => handleFieldChange('username', e.target.value)}
                                 />
                                 {autocomplete && autocomplete.show && autocomplete.field === 'username' && (
-                                    <div className="autocomplete-menu">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                         {autocomplete.suggestions.map((v, idx) => (
                                             <div
                                                 key={idx}
-                                                className="autocomplete-option"
+                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                                 onClick={() => insertVariable('username', v.key)}
                                             >
-                                                <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                                <span className="autocomplete-preview">{v.value}</span>
+                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Password</label>
-                            <div className="form-input-wrapper">
-                                <input
+                        <div className="space-y-2">
+                            <Label htmlFor="basic-password">Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="basic-password"
                                     type="password"
-                                    className="form-input"
                                     placeholder="Password"
                                     value={currentAuth.basic.password}
                                     onChange={(e) => handleFieldChange('password', e.target.value)}
                                 />
                                 {autocomplete && autocomplete.show && autocomplete.field === 'password' && (
-                                    <div className="autocomplete-menu">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                         {autocomplete.suggestions.map((v, idx) => (
                                             <div
                                                 key={idx}
-                                                className="autocomplete-option"
+                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                                 onClick={() => insertVariable('password', v.key)}
                                             >
-                                                <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                                <span className="autocomplete-preview">{v.value}</span>
+                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -227,123 +230,110 @@ const AuthorizationPanel = ({
 
                 {currentAuth.type === 'apiKey' && currentAuth.apiKey && (
                     <>
-                        <div className="form-group">
-                            <label>Key</label>
-                            <div className="form-input-wrapper">
-                                <input
+                        <div className="space-y-2">
+                            <Label htmlFor="apikey-key">Key</Label>
+                            <div className="relative">
+                                <Input
+                                    id="apikey-key"
                                     type="text"
-                                    className="form-input"
                                     placeholder="Key (e.g. X-API-Key)"
                                     value={currentAuth.apiKey.key}
                                     onChange={(e) => handleFieldChange('key', e.target.value)}
                                 />
                                 {autocomplete && autocomplete.show && autocomplete.field === 'key' && (
-                                    <div className="autocomplete-menu">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                         {autocomplete.suggestions.map((v, idx) => (
                                             <div
                                                 key={idx}
-                                                className="autocomplete-option"
+                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                                 onClick={() => insertVariable('key', v.key)}
                                             >
-                                                <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                                <span className="autocomplete-preview">{v.value}</span>
+                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Value</label>
-                            <div className="form-input-wrapper">
-                                <input
+                        <div className="space-y-2">
+                            <Label htmlFor="apikey-value">Value</Label>
+                            <div className="relative">
+                                <Input
+                                    id="apikey-value"
                                     type="text"
-                                    className="form-input"
-                                    placeholder="Value"
+                                    placeholder="API Key value"
                                     value={currentAuth.apiKey.value}
                                     onChange={(e) => handleFieldChange('value', e.target.value)}
                                 />
                                 {autocomplete && autocomplete.show && autocomplete.field === 'value' && (
-                                    <div className="autocomplete-menu">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                         {autocomplete.suggestions.map((v, idx) => (
                                             <div
                                                 key={idx}
-                                                className="autocomplete-option"
+                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                                 onClick={() => insertVariable('value', v.key)}
                                             >
-                                                <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                                <span className="autocomplete-preview">{v.value}</span>
+                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Add To</label>
-                            <div className="auth-type-dropdown-wrapper">
-                                <select
-                                    className="auth-type-select"
-                                    value={currentAuth.apiKey.addTo}
-                                    onChange={(e) => {
-                                        const newAuth = { ...currentAuth };
-                                        if (newAuth.apiKey) {
-                                            newAuth.apiKey.addTo = e.target.value as 'header' | 'query';
-                                            onChange?.(newAuth);
-                                        }
-                                    }}
-                                >
-                                    <option value="header">Header</option>
-                                    <option value="query">Query Params</option>
-                                </select>
-                                <ChevronDown size={14} className="auth-type-chevron" />
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Add To</Label>
+                            <Select value={currentAuth.apiKey.addTo} onValueChange={(value) => handleApiKeyAddToChange(value as 'header' | 'query')}>
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="header">Header</SelectItem>
+                                    <SelectItem value="query">Query Params</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </>
                 )}
 
                 {currentAuth.type === 'oauth2' && currentAuth.oauth2 && (
                     <>
-                        <div className="form-group">
-                            <label>Access Token</label>
-                            <div className="form-input-wrapper">
-                                <input
+                        <div className="space-y-2">
+                            <Label htmlFor="oauth-token">Access Token</Label>
+                            <div className="relative">
+                                <Input
+                                    id="oauth-token"
                                     type="text"
-                                    className="form-input"
-                                    placeholder="Enter access token"
+                                    placeholder="Access token"
                                     value={currentAuth.oauth2.accessToken}
                                     onChange={(e) => handleFieldChange('accessToken', e.target.value)}
                                 />
                                 {autocomplete && autocomplete.show && autocomplete.field === 'accessToken' && (
-                                    <div className="autocomplete-menu">
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
                                         {autocomplete.suggestions.map((v, idx) => (
                                             <div
                                                 key={idx}
-                                                className="autocomplete-option"
+                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                                 onClick={() => insertVariable('accessToken', v.key)}
                                             >
-                                                <span className="autocomplete-key">{"{{" + v.key + "}}"}</span>
-                                                <span className="autocomplete-preview">{v.value}</span>
+                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Token Type</label>
-                            <div className="auth-type-dropdown-wrapper">
-                                <select
-                                    className="auth-type-select"
-                                    value={currentAuth.oauth2.tokenType}
-                                    onChange={(e) => handleFieldChange('tokenType', e.target.value)}
-                                >
-                                    <option value="Bearer">Bearer</option>
-                                    <option value="MAC">MAC</option>
-                                </select>
-                                <ChevronDown size={14} className="auth-type-chevron" />
-                            </div>
-                            <small className="form-helper-text">Token will be sent as: {currentAuth.oauth2.tokenType} &lt;token&gt;</small>
+                        <div className="space-y-2">
+                            <Label htmlFor="oauth-type">Token Type</Label>
+                            <Input
+                                id="oauth-type"
+                                type="text"
+                                placeholder="Bearer"
+                                value={currentAuth.oauth2.tokenType}
+                                onChange={(e) => handleFieldChange('tokenType', e.target.value)}
+                            />
                         </div>
                     </>
                 )}
@@ -352,5 +342,4 @@ const AuthorizationPanel = ({
     );
 };
 
-export default AuthorizationPanel;
-export type { AuthData };
+export { AuthorizationPanel as default, type AuthData };
