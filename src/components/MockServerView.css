@@ -1,4 +1,4 @@
-/* MockServerView - Minimal Tailwind-style CSS */
+/* MockServerView - Comprehensive Tailwind-style CSS */
 
 .mock-view-container {
     display: flex;
@@ -6,6 +6,7 @@
     background: hsl(var(--background));
 }
 
+/* Sidebar */
 .servers-sidebar {
     width: 256px;
     border-right: 1px solid hsl(var(--border));
@@ -150,6 +151,7 @@
     background: hsl(var(--accent));
 }
 
+/* Dashboard */
 .mock-dashboard {
     flex: 1;
     display: flex;
@@ -223,8 +225,7 @@
 
 .port-input-sm:focus {
     outline: none;
-    ring: 1px;
-    ring-color: hsl(var(--ring));
+    box-shadow: 0 0 0 1px hsl(var(--ring));
 }
 
 .secondary-btn,
@@ -267,7 +268,7 @@
     font-size: 0.75rem;
 }
 
-/* Add more styles as needed */
+/* Content Areas */
 .content-scroll {
     overflow: auto;
 }
@@ -276,4 +277,288 @@
 .route-editor,
 .logs-panel {
     padding: 1rem;
+}
+
+/* Routes List */
+.routes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.route-item {
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.route-item:hover {
+    background: hsl(var(--accent));
+}
+
+.route-item.selected {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--primary));
+}
+
+.route-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.route-method {
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.route-method.GET {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.route-method.POST {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.route-method.PUT {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.route-method.PATCH {
+    background: #e9d5ff;
+    color: #6b21a8;
+}
+
+.route-method.DELETE {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.route-path {
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+
+.route-meta {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+}
+
+/* Route Editor */
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.editor-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.editor-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.editor-tab {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 2px solid transparent;
+}
+
+.editor-tab:hover {
+    color: hsl(var(--foreground));
+}
+
+.editor-tab.active {
+    color: hsl(var(--foreground));
+    border-bottom-color: hsl(var(--primary));
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.5rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.375rem;
+    background: hsl(var(--background));
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.form-group textarea {
+    font-family: monospace;
+    min-height: 120px;
+    resize: vertical;
+}
+
+.form-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group-inline input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Logs Panel */
+.logs-header {
+    display: flex;
+    align-items: center;
+    justify-between;
+    margin-bottom: 1rem;
+}
+
+.logs-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.log-entry {
+    padding: 0.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-content {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    min-width: 400px;
+    max-width: 90vw;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.modal-header {
+    margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    z-index: 200;
+    min-width: 200px;
+}
+
+.toast.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.toast.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+/* Utilities */
+.btn-sm {
+    height: 1.75rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+}
+
+.text-danger {
+    color: hsl(var(--destructive));
+}
+
+.divider {
+    height: 1px;
+    background: hsl(var(--border));
+    margin: 1rem 0;
 }
