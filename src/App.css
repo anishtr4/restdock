@@ -1,167 +1,39 @@
-:root {
-  /* Optimized Smooth Theme Palette */
-  --bg-app: #f0f2f5;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-input: #f1f3f6;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  --text-primary: #1a1f26;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-
-  --border-color: #e5e7eb;
-  --accent-color: #2563eb;
-
-  /* Compact Smooth Radii */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-pill: 9999px;
-
-  /* Refined Soft Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
 }
 
-[data-theme='dark'] {
-  --bg-app: #0f172a;
-  --bg-primary: #1e293b;
-  --bg-secondary: #334155;
-  --bg-input: #334155;
+@layer base {
+  * {
+    @apply border-border;
+  }
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
-
-  --border-color: #334155;
-  --accent-color: #3b82f6;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-/* Allow text selection only where needed */
-input,
-textarea,
-.json-code,
-.header-value,
-.inline-edit-input {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-  user-select: text;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-app);
-  color: var(--text-primary);
-  height: 100vh;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  /* Prevent text selection on UI */
-}
-
-/* Allow text selection in input fields and content areas */
-input,
-textarea,
-.json-code,
-.header-value {
-  user-select: text;
-}
-
-.app-container {
-  display: flex;
-  height: 100vh;
-  padding: 8px;
-  gap: 8px;
-  background-color: var(--bg-app);
-}
-
-.activity-bar {
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  background-color: var(--bg-primary);
-  height: 100%;
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  gap: 0;
-  position: relative;
-  min-width: 0;
-  /* Allow flex shrinking */
-}
-
-.explorer {
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  background-color: var(--bg-primary);
-  border: none;
-  height: 100%;
-  width: 100%;
-  /* Fill the resizable panel */
-}
-
-.workspace-split {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  gap: 12px;
-  /* Reduced from 20px */
-  padding: 0;
-}
-
-.request-pane-wrapper {
-  /* Removed flex properties - VerticalResizablePanel controls size */
-  height: 100%;
-  background-color: var(--bg-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  /* Removed border for borderless design */
-  border: none;
-  overflow: visible;
-  /* Allow autocomplete dropdown */
-  padding: 8px;
-  z-index: 10;
-  margin-top: -1px;
-  /* Stitch to tab bar */
-}
-
-.response-pane-wrapper {
-  flex: 1;
-  overflow: hidden;
-  background-color: var(--bg-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  border: none;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  /* Reduced from 12px */
-}
-
-input,
-select,
-textarea,
-button {
-  font-family: inherit;
-  font-size: 13px;
-  /* Slightly smaller default */
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
