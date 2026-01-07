@@ -33,7 +33,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tagName,
-              name: `RustMan ${tagName}`,
+              name: `RestDock ${tagName}`,
               body: 'Download the appropriate installer for your platform below.',
               draft: true,
               prerelease: false

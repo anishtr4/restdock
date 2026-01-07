@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "RustMan",
+  "productName": "RestDock",
   "version": "0.1.0",
-  "identifier": "com.rustman.client",
+  "identifier": "com.restdock.client",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "RustMan",
+        "title": "RestDock",
         "width": 1200,
         "height": 800,
         "minWidth": 900,

@@ -104,7 +104,7 @@ export function TopBar({ onSettingsClick, collections, onSelectRequest, isBento 
                 <div className="w-6 h-6 bg-[#d97706] rounded flex items-center justify-center shadow-[0_0_10px_rgba(217,119,6,0.2)]">
                     <Cpu className="w-4 h-4 text-white fill-current" />
                 </div>
-                <span className="font-bold text-sm tracking-tight text-primary">RustMan</span>
+                <span className="font-bold text-sm tracking-tight text-primary">RestDock</span>
             </div>
 
             {/* Center Section: Search Bar */}
