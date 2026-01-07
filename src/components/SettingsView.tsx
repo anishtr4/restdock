@@ -195,6 +195,56 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                                     <p className="text-xs text-muted-foreground">
                                         Automatically follow HTTP 3xx redirect responses.
                                     </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Automatically follow HTTP 3xx redirect responses.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 pt-4 border-t">
+                                <Label>App Update</Label>
+                                <div className="flex items-center gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={async () => {
+                                            const btn = document.getElementById('check-update-btn');
+                                            const status = document.getElementById('update-status');
+                                            if (btn) (btn as HTMLButtonElement).disabled = true;
+                                            if (btn) btn.innerText = "Checking...";
+                                            if (status) status.innerText = "";
+
+                                            try {
+                                                const { checkUpdate, getDownloadUrl } = await import('@/lib/updater');
+                                                const { openUrl } = await import('@tauri-apps/plugin-opener'); // Dynamic import to avoid top-level issues if any
+
+                                                const info = await checkUpdate();
+                                                if (info) {
+                                                    const url = getDownloadUrl(info);
+                                                    if (status) {
+                                                        status.innerHTML = `New version ${info.version} availble! <a href="#" class="text-primary hover:underline ml-2">Download</a>`;
+                                                        // Add click handler to the link
+                                                        status.querySelector('a')!.onclick = (e) => {
+                                                            e.preventDefault();
+                                                            if (url) openUrl(url);
+                                                            else openUrl(`https://github.com/anishtr4/restdock_release/releases/tag/${info.version}`);
+                                                        };
+                                                    }
+                                                } else {
+                                                    if (status) status.innerText = "You are on the latest version.";
+                                                }
+                                            } catch (e) {
+                                                console.error(e);
+                                                if (status) status.innerText = "Check failed.";
+                                            } finally {
+                                                if (btn) (btn as HTMLButtonElement).disabled = false;
+                                                if (btn) btn.innerText = "Check for Updates";
+                                            }
+                                        }}
+                                        id="check-update-btn"
+                                    >
+                                        Check for Updates
+                                    </Button>
+                                    <span id="update-status" className="text-sm font-medium"></span>
                                 </div>
                             </div>
                         </div>
