@@ -111,6 +111,25 @@ jobs:
       - name: List artifacts
         run: ls -R
 
+      - name: Rename updater artifacts for uniqueness
+        run: |
+          # Rename macOS arm64 updater bundle
+          if [ -f "restdock-macOS-arm64/macos/RestDock.app.tar.gz" ]; then
+            mv restdock-macOS-arm64/macos/RestDock.app.tar.gz restdock-macOS-arm64/macos/RestDock_aarch64.app.tar.gz
+          fi
+          if [ -f "restdock-macOS-arm64/macos/RestDock.app.tar.gz.sig" ]; then
+            mv restdock-macOS-arm64/macos/RestDock.app.tar.gz.sig restdock-macOS-arm64/macos/RestDock_aarch64.app.tar.gz.sig
+          fi
+          # Rename macOS x64 updater bundle
+          if [ -f "restdock-macOS-x64/macos/RestDock.app.tar.gz" ]; then
+            mv restdock-macOS-x64/macos/RestDock.app.tar.gz restdock-macOS-x64/macos/RestDock_x64.app.tar.gz
+          fi
+          if [ -f "restdock-macOS-x64/macos/RestDock.app.tar.gz.sig" ]; then
+            mv restdock-macOS-x64/macos/RestDock.app.tar.gz.sig restdock-macOS-x64/macos/RestDock_x64.app.tar.gz.sig
+          fi
+          echo "After renaming:"
+          ls -la restdock-*/macos/ || true
+
       - name: Generate latest.json
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}

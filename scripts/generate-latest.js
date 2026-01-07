@@ -7,14 +7,14 @@ const PUBLISH_DATE = new Date().toISOString();
 
 // Platform mapping: Updater platform key -> folder pattern and extension
 // Tauri v2 updater uses specific bundle formats:
-// - macOS: .app.tar.gz (compressed app bundle)
+// - macOS: .app.tar.gz (compressed app bundle) - renamed to include arch
 // - Linux: .AppImage.tar.gz (compressed AppImage)
 // - Windows: .nsis.zip (compressed NSIS installer)
 const PLATFORMS = {
-    'darwin-aarch64': { ext: '.app.tar.gz', folder: 'macOS-arm64' },
-    'darwin-x86_64': { ext: '.app.tar.gz', folder: 'macOS-x64' },
-    'linux-x86_64': { ext: '.AppImage.tar.gz', folder: 'Linux-x64' },
-    'windows-x86_64': { ext: '.nsis.zip', folder: 'Windows-x64' }
+    'darwin-aarch64': { ext: '.app.tar.gz', folder: 'macOS-arm64', pattern: '_aarch64' },
+    'darwin-x86_64': { ext: '.app.tar.gz', folder: 'macOS-x64', pattern: '_x64' },
+    'linux-x86_64': { ext: '.AppImage.tar.gz', folder: 'Linux-x64', pattern: '' },
+    'windows-x86_64': { ext: '.nsis.zip', folder: 'Windows-x64', pattern: '' }
 };
 
 // Base URL where assets are hosted (GitHub Releases)
@@ -106,9 +106,10 @@ walk(ARTIFACTS_DIR);
 for (const [platformKey, config] of Object.entries(PLATFORMS)) {
     const ext = config.ext;
     const folder = config.folder;
+    const pattern = config.pattern || '';
 
-    // Find file that has extension AND contains folder name in path
-    const match = files.find(f => f.endsWith(ext) && f.includes(folder));
+    // Find file that has extension AND contains folder name in path AND matches pattern
+    const match = files.find(f => f.endsWith(ext) && f.includes(folder) && (pattern === '' || f.includes(pattern)));
 
     if (match) {
         const sig = getSignature(match);
