@@ -6,13 +6,13 @@ const VERSION = process.env.VERSION || '1.0.0'; // Should be passed from workflo
 const PUBLISH_DATE = new Date().toISOString();
 
 // Platform mapping: Updater platform key -> folder pattern and extension
-// Tauri v2 updater uses specific bundle formats:
-// - macOS: .app.tar.gz (compressed app bundle) - renamed to include arch
-// - Linux: .AppImage (signed directly)
-// - Windows: .exe (NSIS installer, signed directly)
+// Using direct installer files for easy downloads:
+// - macOS: .dmg (disk image)
+// - Linux: .AppImage (portable app)
+// - Windows: -setup.exe (NSIS installer)
 const PLATFORMS = {
-    'darwin-aarch64': { ext: '.app.tar.gz', folder: 'macOS-arm64', pattern: '_aarch64' },
-    'darwin-x86_64': { ext: '.app.tar.gz', folder: 'macOS-x64', pattern: '_x64' },
+    'darwin-aarch64': { ext: '_aarch64.dmg', folder: 'macOS-arm64', pattern: '' },
+    'darwin-x86_64': { ext: '_x64.dmg', folder: 'macOS-x64', pattern: '' },
     'linux-x86_64': { ext: '.AppImage', folder: 'Linux-x64', pattern: '' },
     'windows-x86_64': { ext: '-setup.exe', folder: 'Windows-x64', pattern: '' }
 };
