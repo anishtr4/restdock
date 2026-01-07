@@ -34,5 +34,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://anishtr4.github.io/restdock_release/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIyMDMwRTgwNDc5NDc1OUUKUldTZWRaUkhnQTREc2l6aVU3STNoRTdFMFIwaDJCSjZ3QWlpRE1SbjhLRXlPa0NTMStkUXFZZUkK"
+    }
   }
 }

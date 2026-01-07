@@ -11,6 +11,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { LoadingFallback } from "./components/LoadingFallback";
 import { PanelSkeleton } from "./components/PanelSkeleton";
+import { UpdateChecker } from "./components/UpdateChecker";
 
 // Lazy load heavy components
 const RequestPanel = lazy(() => import("./components/RequestPanel"));
@@ -74,6 +75,8 @@ function App() {
       unlistenPromise.then(unlisten => unlisten());
     };
   }, []);
+
+
 
   // Apply Settings Effect
   useEffect(() => {
@@ -978,6 +981,7 @@ function App() {
         onSave={handleDialogSave}
         initialName={saveDialogState.requestName}
       />
+      <UpdateChecker />
     </div>
   );
 }
