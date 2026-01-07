@@ -64,6 +64,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: --target ${{ matrix.target }}
 
@@ -150,10 +151,10 @@ jobs:
             - **Windows**: `RestDock_*_x64-setup.exe` or `.msi`
             - **Linux**: `RestDock_*_amd64.AppImage` or `.deb`
           files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.exe
-            artifacts/**/*.msi
-            artifacts/**/*.deb
-            artifacts/**/*.AppImage
+            restdock-*/**/*.dmg
+            restdock-*/**/*.exe
+            restdock-*/**/*.msi
+            restdock-*/**/*.deb
+            restdock-*/**/*.AppImage
           draft: false
           prerelease: false
