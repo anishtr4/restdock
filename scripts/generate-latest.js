@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || 'artifacts';
 const VERSION = process.env.VERSION || '1.0.0'; // Should be passed from workflow
