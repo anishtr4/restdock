@@ -16,7 +16,8 @@ const PLATFORMS = {
 // Base URL where assets are hosted (GitHub Releases)
 const REPO = process.env.GITHUB_REPOSITORY || 'anishtr4/restdock_release'; // Env var from action? No, release repo.
 const RELEASE_REPO = process.env.RELEASE_REPO || 'anishtr4/restdock_release';
-const BASE_URL = `https://github.com/${RELEASE_REPO}/releases/download/v${VERSION}`;
+// VERSION already contains 'v' prefix (e.g., 'v1.0.7')
+const BASE_URL = `https://github.com/${RELEASE_REPO}/releases/download/${VERSION}`;
 
 const latest = {
     version: VERSION,
@@ -107,15 +108,15 @@ for (const [platformKey, config] of Object.entries(PLATFORMS)) {
 
     if (match) {
         const sig = getSignature(match);
+        const filename = path.basename(match);
+        latest.platforms[platformKey] = {
+            signature: sig || '',
+            url: `${BASE_URL}/${filename}`
+        };
         if (sig) {
-            const filename = path.basename(match);
-            latest.platforms[platformKey] = {
-                signature: sig,
-                url: `${BASE_URL}/${filename}`
-            };
-            console.log(`✅ ${platformKey}: Found ${filename}`);
+            console.log(`✅ ${platformKey}: Found ${filename} with signature`);
         } else {
-            console.warn(`⚠️ ${platformKey}: Found binary but no .sig file!`);
+            console.log(`⚠️ ${platformKey}: Found ${filename} (no signature - updater won't verify)`);
         }
     } else {
         console.warn(`❌ ${platformKey}: No matching artifact found.`);
