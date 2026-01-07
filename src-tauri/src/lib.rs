@@ -12,8 +12,22 @@ struct HttpResponse {
 }
 
 #[tauri::command]
-async fn make_request(method: String, url: String, headers: Option<HashMap<String, String>>, body: Option<String>) -> Result<HttpResponse, String> {
-    let client = reqwest::Client::new();
+async fn make_request(method: String, url: String, headers: Option<HashMap<String, String>>, body: Option<String>, timeout: Option<u64>, follow_redirects: Option<bool>) -> Result<HttpResponse, String> {
+    let mut client_builder = reqwest::Client::builder();
+
+    if let Some(t) = timeout {
+        client_builder = client_builder.timeout(std::time::Duration::from_millis(t));
+    }
+
+    if let Some(follow) = follow_redirects {
+        if !follow {
+            client_builder = client_builder.redirect(reqwest::redirect::Policy::none());
+        }
+        // reqwest follows redirects by default, so we only need to explicitly disable if false
+        // or we could set a policy. Default is 10 redirects.
+    }
+
+    let client = client_builder.build().map_err(|e| e.to_string())?;
     let start = Instant::now();
 
     let method = method.to_uppercase();

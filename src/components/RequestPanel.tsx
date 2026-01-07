@@ -1,21 +1,40 @@
 
 import { useState } from "react";
-import { ChevronDown, Send, Save } from "lucide-react";
+import { Send, Save, Loader2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { RequestMethod, RequestData } from "../App";
-// import "./RequestPanel.css"; // Temporarily disabled during Tailwind migration
 import KeyValueEditor from "./KeyValueEditor";
-import AuthorizationPanel, { AuthData } from "./AuthorizationPanel";
+import AuthorizationPanel from "./AuthorizationPanel";
 import BodyEditor from "./BodyEditor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+import { AppSettings } from "./SettingsView";
 
 interface RequestPanelProps {
     request: RequestData;
     setRequest: (req: RequestData) => void;
     setResponse: (res: any) => void;
     setLoading: (loading: boolean) => void;
-    onSave: () => void;
+    onSave: (request: RequestData) => void;
     onHistoryAdd?: (entry: { method: string; url: string; status?: number }) => void;
     collectionVariables?: { key: string; value: string; enabled: boolean }[];
+    settings?: AppSettings;
 }
 
 const RequestPanel = ({
@@ -25,7 +44,8 @@ const RequestPanel = ({
     setLoading,
     onSave,
     onHistoryAdd,
-    collectionVariables = []
+    collectionVariables = [],
+    settings
 }: RequestPanelProps) => {
     const [autocomplete, setAutocomplete] = useState<{
         show: boolean;
@@ -34,10 +54,12 @@ const RequestPanel = ({
         replacementStartIndex: number;
         replacementEndIndex: number;
     } | null>(null);
-    const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
+    const [activeTab, setActiveTab] = useState('params');
     const methods: RequestMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+    const [isSending, setIsSending] = useState(false);
 
     const handleSend = async () => {
+        setIsSending(true);
         setLoading(true);
         setResponse(null);
         try {
@@ -94,7 +116,9 @@ const RequestPanel = ({
                 method: request.method,
                 url: finalUrl,
                 headers: headersMap,
-                body: finalBody
+                body: finalBody,
+                timeout: settings?.requestTimeout,
+                follow_redirects: settings?.followRedirects
             });
             setResponse(res);
 
@@ -110,6 +134,7 @@ const RequestPanel = ({
             setResponse({ error: err.toString() });
         } finally {
             setLoading(false);
+            setIsSending(false);
         }
     };
 
@@ -194,46 +219,69 @@ const RequestPanel = ({
         setRequest({ ...request, body: newBodyStr });
     };
 
+    const getMethodColor = (method: string) => {
+        switch (method) {
+            case 'GET': return 'text-blue-500';
+            case 'POST': return 'text-green-500';
+            case 'PUT': return 'text-orange-500';
+            case 'DELETE': return 'text-red-500';
+            case 'PATCH': return 'text-purple-500';
+            default: return 'text-foreground';
+        }
+    }
+
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-background no-scrollbar">
             {/* Request Bar */}
-            <div className="flex items-center gap-2 p-4 border-b bg-background">
+            <div className="flex items-center gap-2 p-4 border-b bg-background sticky top-0 z-10">
                 {/* Method Select */}
-                <div className="relative">
-                    <select
-                        className="h-9 px-3 pr-8 rounded-md border border-input bg-background text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={request.method}
-                        onChange={(e) => updateMethod(e.target.value as RequestMethod)}
-                    >
-                        {methods.map((m) => (
-                            <option key={m} value={m}>
-                                {m}
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+                <div className="w-[120px] flex-shrink-0">
+                    <Select value={request.method} onValueChange={(val) => updateMethod(val as RequestMethod)}>
+                        <SelectTrigger className={cn("font-bold tracking-tight", getMethodColor(request.method))}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {methods.map((m) => (
+                                <SelectItem key={m} value={m} className={cn("font-medium", getMethodColor(m))}>
+                                    {m}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* URL Input */}
                 <div className="relative flex-1">
-                    <input
-                        type="text"
-                        className="h-9 w-full px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="Enter request URL"
-                        value={request.url}
-                        onChange={(e) => updateUrl(e.target.value, e.target.selectionStart || 0)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    />
+                    <div className="relative">
+                        <Input
+                            type="text"
+                            placeholder="https://api.example.com/v1/..."
+                            value={request.url}
+                            onChange={(e) => updateUrl(e.target.value, e.target.selectionStart || 0)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                            className="font-mono text-sm pr-20"
+                        />
+                        {request.url.includes("{{") && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                <Badge variant="secondary" className="text-[10px] h-5 px-1 bg-muted text-muted-foreground font-normal">VAR</Badge>
+                            </div>
+                        )}
+                    </div>
+
                     {autocomplete && autocomplete.show && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-60 overflow-auto">
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-60 overflow-auto animate-in fade-in zoom-in-95 duration-100">
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border-b">Select Variable</div>
                             {autocomplete.suggestions.map((v, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm group transition-colors"
                                     onClick={() => insertVariable(v.key)}
                                 >
-                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
+                                    <div className="flex items-center gap-2">
+                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded border font-mono text-primary group-hover:border-primary/30">{`{{${v.key}}}`}</code>
+                                        <span className="text-muted-foreground text-xs group-hover:text-foreground transition-colors">{v.value}</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">Enter to select</div>
                                 </div>
                             ))}
                         </div>
@@ -241,93 +289,87 @@ const RequestPanel = ({
                 </div>
 
                 {/* Action Buttons */}
-                <button
-                    className="h-9 px-4 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2"
+                <Button
                     onClick={handleSend}
+                    disabled={isSending}
+                    className="w-24 bg-primary hover:bg-primary/90 font-semibold shadow-sm"
                 >
-                    <Send className="h-4 w-4" />
-                    <span>Run</span>
-                </button>
-                <button
-                    className="h-9 px-4 border border-input bg-background rounded-md text-sm font-medium hover:bg-accent flex items-center gap-2"
-                    onClick={onSave}
-                >
-                    <Save className="h-4 w-4" />
-                    <span>Save</span>
-                </button>
+                    {isSending ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Run
+                        </>
+                    ) : (
+                        <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Run
+                        </>
+                    )}
+                </Button>
+                <Button variant="secondary" className="w-24 border" onClick={() => onSave(request)}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save
+                </Button>
             </div>
 
-            {/* Tabs Header */}
-            <div className="flex border-b bg-background">
-                <div
-                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'params'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                    onClick={() => setActiveTab('params')}
-                >
-                    Params
+            {/* Tabs Header & Content */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div className="px-4 pt-2 border-b bg-background/50 backdrop-blur-sm">
+                    <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-6">
+                        {['params', 'auth', 'headers', 'body'].map(tab => (
+                            <TabsTrigger
+                                key={tab}
+                                value={tab}
+                                className="relative rounded-none border-b-2 border-transparent px-2 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground"
+                            >
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
                 </div>
-                <div
-                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'auth'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                    onClick={() => setActiveTab('auth')}
-                >
-                    Authorization
-                </div>
-                <div
-                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'headers'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                    onClick={() => setActiveTab('headers')}
-                >
-                    Headers
-                </div>
-                <div
-                    className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${activeTab === 'body'
-                            ? 'border-primary text-foreground'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                    onClick={() => setActiveTab('body')}
-                >
-                    Body
-                </div>
-            </div>
 
-            {/* Tabs Content */}
-            <div className="flex-1 overflow-auto p-4">
-                {activeTab === 'params' && (
-                    <KeyValueEditor
-                        items={request.params || []}
-                        onChange={(newParams: any[]) => setRequest({ ...request, params: newParams })}
-                        collectionVariables={collectionVariables}
-                    />
-                )}
-                {activeTab === 'headers' && (
-                    <KeyValueEditor
-                        items={request.headers || []}
-                        onChange={(newHeaders: any[]) => setRequest({ ...request, headers: newHeaders })}
-                        collectionVariables={collectionVariables}
-                    />
-                )}
-                {activeTab === 'auth' && (
-                    <AuthorizationPanel
-                        auth={request.auth}
-                        onChange={(newAuth: any) => setRequest({ ...request, auth: newAuth })}
-                        collectionVariables={collectionVariables}
-                    />
-                )}
-                {activeTab === 'body' && (
-                    <BodyEditor
-                        body={getBodyData()}
-                        onChange={handleBodyChange}
-                        collectionVariables={collectionVariables}
-                    />
-                )}
-            </div>
+                <div className="flex-1 overflow-auto bg-muted/5 min-h-0">
+                    <TabsContent value="params" className="bg-transparent p-4 m-0 h-full border-0">
+                        <div className="max-w-5xl mx-auto h-full flex flex-col">
+                            <KeyValueEditor
+                                items={request.params || []}
+                                onChange={(newParams: any[]) => setRequest({ ...request, params: newParams })}
+                                collectionVariables={collectionVariables}
+                            />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="headers" className="bg-transparent p-4 m-0 h-full border-0">
+                        <div className="max-w-5xl mx-auto h-full flex flex-col">
+                            <KeyValueEditor
+                                items={request.headers || []}
+                                onChange={(newHeaders: any[]) => setRequest({ ...request, headers: newHeaders })}
+                                collectionVariables={collectionVariables}
+                            />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="auth" className="bg-transparent p-4 m-0 h-full border-0">
+                        <div className="max-w-5xl mx-auto h-full flex flex-col">
+                            <AuthorizationPanel
+                                auth={request.auth}
+                                onChange={(newAuth: any) => setRequest({ ...request, auth: newAuth })}
+                                collectionVariables={collectionVariables}
+                            />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="body" className="bg-transparent p-4 m-0 h-full border-0">
+                        <div className="max-w-5xl mx-auto h-full flex flex-col">
+                            <BodyEditor
+                                body={getBodyData()}
+                                onChange={handleBodyChange}
+                                collectionVariables={collectionVariables}
+                            />
+                        </div>
+                    </TabsContent>
+                </div>
+            </Tabs>
         </div>
     );
 };

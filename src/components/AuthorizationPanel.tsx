@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 interface AuthData {
     type: 'none' | 'bearer' | 'basic' | 'apiKey' | 'oauth2';
@@ -115,13 +123,21 @@ const AuthorizationPanel = ({
         }
     };
 
+    // Shared styling constants to match KeyValueEditor
+    const tableHeaderClass = "w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70";
+    const headerRowClass = "hover:bg-transparent border-b divide-x divide-border/50 bg-muted/30";
+    const rowClass = "hover:bg-muted/5 border-b divide-x divide-border/20 group h-9 transition-colors";
+    const labelCellClass = "p-0 align-middle bg-muted/5 w-[30%] px-3 text-xs font-medium text-muted-foreground/80";
+    const inputCellClass = "p-0 align-middle relative";
+    const inputClass = "h-9 w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm transition-all placeholder:text-muted-foreground/40";
+
     return (
-        <div className="space-y-4">
-            {/* Auth Type Selector */}
-            <div className="space-y-2">
-                <Label>Auth Type</Label>
+        <div className="space-y-6">
+            {/* Auth Type Selector - Kept clean but consistent */}
+            <div className="flex items-center gap-4 py-2">
+                <Label className="w-24 flex-shrink-0 text-muted-foreground font-medium text-xs uppercase tracking-wide">Auth Type</Label>
                 <Select value={currentAuth.type} onValueChange={(value) => handleTypeChange(value as AuthData['type'])}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[200px] h-9">
                         <SelectValue placeholder="Select auth type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,209 +151,194 @@ const AuthorizationPanel = ({
             </div>
 
             {/* Content Area */}
-            <div className="space-y-4">
-                {currentAuth.type === 'none' && (
-                    <div className="text-sm text-muted-foreground py-4">
-                        This request does not use any authorization.
-                    </div>
-                )}
-
-                {currentAuth.type === 'bearer' && currentAuth.bearer && (
-                    <div className="space-y-2">
-                        <Label htmlFor="bearer-token">Token</Label>
-                        <div className="relative">
-                            <Input
-                                id="bearer-token"
-                                type="text"
-                                placeholder="Enter bearer token"
-                                value={currentAuth.bearer.token}
-                                onChange={(e) => handleFieldChange('token', e.target.value)}
-                            />
-                            {autocomplete && autocomplete.show && autocomplete.field === 'token' && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                    {autocomplete.suggestions.map((v, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                            onClick={() => insertVariable('token', v.key)}
-                                        >
-                                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                            <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
+            {currentAuth.type !== 'none' && (
+                <div className="w-full border rounded-md overflow-hidden bg-background shadow-sm">
+                    <Table className="border-collapse table-fixed">
+                        <TableHeader>
+                            <TableRow className={headerRowClass}>
+                                <TableHead className={tableHeaderClass}>Key</TableHead>
+                                <TableHead className="w-[40%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Value</TableHead>
+                                <TableHead className="w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {currentAuth.type === 'bearer' && currentAuth.bearer && (
+                                <TableRow className={rowClass}>
+                                    <TableCell className={labelCellClass}>Token</TableCell>
+                                    <TableCell className={inputCellClass}>
+                                        <Input
+                                            type="text"
+                                            placeholder="Enter bearer token"
+                                            value={currentAuth.bearer.token}
+                                            onChange={(e) => handleFieldChange('token', e.target.value)}
+                                            className={inputClass}
+                                        />
+                                        {autocomplete && autocomplete.show && autocomplete.field === 'token' && (
+                                            <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter bg-muted/30 border-b">Variables</div>
+                                                {autocomplete.suggestions.map((v, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm group/item transition-colors"
+                                                        onClick={() => insertVariable('token', v.key)}
+                                                    >
+                                                        <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary group-hover/item:border-primary/30 transition-colors shrink-0">{`{{${v.key}}}`}</code>
+                                                        <span className="text-muted-foreground text-[10px] ml-2 truncate group-hover/item:text-foreground transition-colors text-right">{v.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="p-0 align-middle">
+                                        <div className="px-3 text-xs italic text-muted-foreground/50">Bearer Token</div>
+                                    </TableCell>
+                                </TableRow>
                             )}
-                        </div>
-                    </div>
-                )}
 
-                {currentAuth.type === 'basic' && currentAuth.basic && (
-                    <>
-                        <div className="space-y-2">
-                            <Label htmlFor="basic-username">Username</Label>
-                            <div className="relative">
-                                <Input
-                                    id="basic-username"
-                                    type="text"
-                                    placeholder="Username"
-                                    value={currentAuth.basic.username}
-                                    onChange={(e) => handleFieldChange('username', e.target.value)}
-                                />
-                                {autocomplete && autocomplete.show && autocomplete.field === 'username' && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                        {autocomplete.suggestions.map((v, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                onClick={() => insertVariable('username', v.key)}
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="basic-password">Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="basic-password"
-                                    type="password"
-                                    placeholder="Password"
-                                    value={currentAuth.basic.password}
-                                    onChange={(e) => handleFieldChange('password', e.target.value)}
-                                />
-                                {autocomplete && autocomplete.show && autocomplete.field === 'password' && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                        {autocomplete.suggestions.map((v, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                onClick={() => insertVariable('password', v.key)}
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </>
-                )}
+                            {currentAuth.type === 'basic' && currentAuth.basic && (
+                                <>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Username</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="text"
+                                                placeholder="Username"
+                                                value={currentAuth.basic.username}
+                                                onChange={(e) => handleFieldChange('username', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                            {autocomplete && autocomplete.show && autocomplete.field === 'username' && (
+                                                <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    {autocomplete.suggestions.map((v, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm" onClick={() => insertVariable('username', v.key)}>
+                                                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary">{`{{${v.key}}}`}</code>
+                                                            <span className="text-muted-foreground text-[10px] ml-2 truncate">{v.value}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Password</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="password"
+                                                placeholder="Password"
+                                                value={currentAuth.basic.password}
+                                                onChange={(e) => handleFieldChange('password', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                            {autocomplete && autocomplete.show && autocomplete.field === 'password' && (
+                                                <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    {autocomplete.suggestions.map((v, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm" onClick={() => insertVariable('password', v.key)}>
+                                                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary">{`{{${v.key}}}`}</code>
+                                                            <span className="text-muted-foreground text-[10px] ml-2 truncate">{v.value}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                </>
+                            )}
 
-                {currentAuth.type === 'apiKey' && currentAuth.apiKey && (
-                    <>
-                        <div className="space-y-2">
-                            <Label htmlFor="apikey-key">Key</Label>
-                            <div className="relative">
-                                <Input
-                                    id="apikey-key"
-                                    type="text"
-                                    placeholder="Key (e.g. X-API-Key)"
-                                    value={currentAuth.apiKey.key}
-                                    onChange={(e) => handleFieldChange('key', e.target.value)}
-                                />
-                                {autocomplete && autocomplete.show && autocomplete.field === 'key' && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                        {autocomplete.suggestions.map((v, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                onClick={() => insertVariable('key', v.key)}
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="apikey-value">Value</Label>
-                            <div className="relative">
-                                <Input
-                                    id="apikey-value"
-                                    type="text"
-                                    placeholder="API Key value"
-                                    value={currentAuth.apiKey.value}
-                                    onChange={(e) => handleFieldChange('value', e.target.value)}
-                                />
-                                {autocomplete && autocomplete.show && autocomplete.field === 'value' && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                        {autocomplete.suggestions.map((v, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                onClick={() => insertVariable('value', v.key)}
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Add To</Label>
-                            <Select value={currentAuth.apiKey.addTo} onValueChange={(value) => handleApiKeyAddToChange(value as 'header' | 'query')}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="header">Header</SelectItem>
-                                    <SelectItem value="query">Query Params</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </>
-                )}
+                            {currentAuth.type === 'apiKey' && currentAuth.apiKey && (
+                                <>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Key</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="text"
+                                                placeholder="Key (e.g. X-API-Key)"
+                                                value={currentAuth.apiKey.key}
+                                                onChange={(e) => handleFieldChange('key', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Value</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="text"
+                                                placeholder="API Key value"
+                                                value={currentAuth.apiKey.value}
+                                                onChange={(e) => handleFieldChange('value', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Add To</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Select value={currentAuth.apiKey.addTo} onValueChange={(value) => handleApiKeyAddToChange(value as 'header' | 'query')}>
+                                                <SelectTrigger className="w-full h-9 bg-transparent border-none focus:ring-1 focus:ring-primary/30 rounded-none px-3 text-sm shadow-none focus:ring-inset">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="header">Header</SelectItem>
+                                                    <SelectItem value="query">Query Params</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle">
+                                            <div className="px-3 text-xs italic text-muted-foreground/50">Where to add key</div>
+                                        </TableCell>
+                                    </TableRow>
+                                </>
+                            )}
 
-                {currentAuth.type === 'oauth2' && currentAuth.oauth2 && (
-                    <>
-                        <div className="space-y-2">
-                            <Label htmlFor="oauth-token">Access Token</Label>
-                            <div className="relative">
-                                <Input
-                                    id="oauth-token"
-                                    type="text"
-                                    placeholder="Access token"
-                                    value={currentAuth.oauth2.accessToken}
-                                    onChange={(e) => handleFieldChange('accessToken', e.target.value)}
-                                />
-                                {autocomplete && autocomplete.show && autocomplete.field === 'accessToken' && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                        {autocomplete.suggestions.map((v, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                onClick={() => insertVariable('accessToken', v.key)}
-                                            >
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                                <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="oauth-type">Token Type</Label>
-                            <Input
-                                id="oauth-type"
-                                type="text"
-                                placeholder="Bearer"
-                                value={currentAuth.oauth2.tokenType}
-                                onChange={(e) => handleFieldChange('tokenType', e.target.value)}
-                            />
-                        </div>
-                    </>
-                )}
-            </div>
+                            {currentAuth.type === 'oauth2' && currentAuth.oauth2 && (
+                                <>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Access Token</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="text"
+                                                placeholder="Access token"
+                                                value={currentAuth.oauth2.accessToken}
+                                                onChange={(e) => handleFieldChange('accessToken', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                    <TableRow className={rowClass}>
+                                        <TableCell className={labelCellClass}>Token Type</TableCell>
+                                        <TableCell className={inputCellClass}>
+                                            <Input
+                                                type="text"
+                                                placeholder="Bearer"
+                                                value={currentAuth.oauth2.tokenType}
+                                                onChange={(e) => handleFieldChange('tokenType', e.target.value)}
+                                                className={inputClass}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-0 align-middle"></TableCell>
+                                    </TableRow>
+                                </>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+
+            {currentAuth.type === 'none' && (
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/5 border rounded-md border-dashed">
+                    <p className="text-sm text-muted-foreground">
+                        This request does not use any authorization.
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                        Select an Auth type from the dropdown above to add credentials.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

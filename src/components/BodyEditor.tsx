@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+
 import KeyValueEditor from "./KeyValueEditor";
 
 interface BodyData {
@@ -98,106 +98,97 @@ const BodyEditor = ({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col h-full gap-4">
             {/* Body Type Selector */}
-            <div className="space-y-2">
-                <Label>Body Type</Label>
+            <div className="flex items-center gap-4">
                 <Select value={currentBody.type} onValueChange={(value) => handleTypeChange(value as BodyData['type'])}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[150px] h-8 text-xs font-medium bg-background">
                         <SelectValue placeholder="Select body type" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="none">No Body</SelectItem>
                         <SelectItem value="json">JSON</SelectItem>
-                        <SelectItem value="raw">Raw</SelectItem>
+                        <SelectItem value="raw">Raw Text</SelectItem>
                         <SelectItem value="formdata">Form Data</SelectItem>
                     </SelectContent>
                 </Select>
+                {/* Optional: Add content type badge or helper text here if needed later */}
             </div>
 
             {/* Content Area */}
             {currentBody.type === 'none' && (
-                <div className="text-sm text-muted-foreground py-4">
-                    This request does not have a body.
+                <div className="text-sm text-muted-foreground italic px-1">
+                    This request does not include a body payload.
                 </div>
             )}
 
             {currentBody.type === 'json' && (
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-                        <span className="text-xs font-medium text-muted-foreground uppercase">JSON</span>
-                    </div>
-                    <div className="relative">
-                        <textarea
-                            className="w-full h-64 px-3 py-2 font-mono text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                            placeholder='{\n  "key": "value"\n}'
-                            value={currentBody.json || ''}
-                            onChange={(e) => handleContentChange(e.target.value)}
-                            spellCheck={false}
-                            ref={(ref) => {
-                                if (ref && autocomplete?.show) {
-                                    (window as any).currentTextarea = ref;
-                                }
-                            }}
-                        />
-                        {autocomplete && autocomplete.show && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                {autocomplete.suggestions.map((v, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                        onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
-                                    >
-                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                        <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="relative border rounded-md shadow-sm bg-background flex-1 flex flex-col min-h-0">
+                    <textarea
+                        className="w-full flex-1 p-4 font-mono text-sm bg-transparent border-0 focus:outline-none resize-none no-scrollbar"
+                        placeholder='{\n  "key": "value"\n}'
+                        value={currentBody.json || ''}
+                        onChange={(e) => handleContentChange(e.target.value)}
+                        spellCheck={false}
+                        ref={(ref) => {
+                            if (ref && autocomplete?.show) {
+                                (window as any).currentTextarea = ref;
+                            }
+                        }}
+                    />
+                    {autocomplete && autocomplete.show && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
+                            {autocomplete.suggestions.map((v, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                    onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
+                                >
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
             {currentBody.type === 'raw' && (
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-                        <span className="text-xs font-medium text-muted-foreground uppercase">Plain Text</span>
-                    </div>
-                    <div className="relative">
-                        <textarea
-                            className="w-full h-64 px-3 py-2 font-mono text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                            placeholder="Enter raw text..."
-                            value={currentBody.raw || ''}
-                            onChange={(e) => handleContentChange(e.target.value)}
-                            ref={(ref) => {
-                                if (ref && autocomplete?.show) {
-                                    (window as any).currentTextarea = ref;
-                                }
-                            }}
-                        />
-                        {autocomplete && autocomplete.show && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                                {autocomplete.suggestions.map((v, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                        onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
-                                    >
-                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                        <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="relative border rounded-md shadow-sm bg-background flex-1 flex flex-col min-h-0">
+                    <textarea
+                        className="w-full flex-1 p-4 font-mono text-sm bg-transparent border-0 focus:outline-none resize-none no-scrollbar"
+                        placeholder="Enter raw text here..."
+                        value={currentBody.raw || ''}
+                        onChange={(e) => handleContentChange(e.target.value)}
+                        ref={(ref) => {
+                            if (ref && autocomplete?.show) {
+                                (window as any).currentTextarea = ref;
+                            }
+                        }}
+                    />
+                    {autocomplete && autocomplete.show && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
+                            {autocomplete.suggestions.map((v, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                    onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
+                                >
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
+                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
             {currentBody.type === 'formdata' && (
                 <KeyValueEditor
-                    items={currentBody.formdata}
+                    items={currentBody.formdata?.map(i => ({ ...i, active: i.enabled, description: '' })) || []}
                     onChange={(items) => {
-                        const newBody = { ...currentBody, formdata: items };
+                        const newFormdata = items.map(i => ({ key: i.key, value: i.value, enabled: i.active }));
+                        const newBody = { ...currentBody, formdata: newFormdata };
                         onChange?.(newBody);
                     }}
                     collectionVariables={collectionVariables}

@@ -4,15 +4,20 @@ import { Globe, Palette, Monitor } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+
+import { THEMES } from "@/lib/themes";
 
 interface GlobalVar {
     key: string;
     value: string;
     enabled: boolean;
+    description?: string;
 }
 
 export interface AppSettings {
     theme: 'light' | 'dark' | 'system';
+    themeId: string;
     zoomLevel: number;
     requestTimeout: number;
     followRedirects: boolean;
@@ -43,37 +48,31 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                 <div className="px-4 py-3 border-b">
                     <h2 className="text-lg font-semibold">Settings</h2>
                 </div>
-                <nav className="flex-1 p-2">
-                    <button
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "global"
-                                ? "bg-accent text-accent-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                            }`}
+                <nav className="flex-1 p-2 space-y-1">
+                    <Button
+                        variant={activeTab === "global" ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-3"
                         onClick={() => setActiveTab("global")}
                     >
                         <Globe className="h-4 w-4" />
                         Global Variables
-                    </button>
-                    <button
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "theme"
-                                ? "bg-accent text-accent-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                            }`}
+                    </Button>
+                    <Button
+                        variant={activeTab === "theme" ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-3"
                         onClick={() => setActiveTab("theme")}
                     >
                         <Palette className="h-4 w-4" />
                         Theme
-                    </button>
-                    <button
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "general"
-                                ? "bg-accent text-accent-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                            }`}
+                    </Button>
+                    <Button
+                        variant={activeTab === "general" ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-3"
                         onClick={() => setActiveTab("general")}
                     >
                         <Monitor className="h-4 w-4" />
                         General
-                    </button>
+                    </Button>
                 </nav>
             </div>
 
@@ -93,7 +92,8 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                                 onGlobalVariablesChange(items.map(i => ({
                                     key: i.key,
                                     value: i.value,
-                                    enabled: i.active
+                                    enabled: i.active,
+                                    description: i.description
                                 })));
                             }}
                         />
@@ -103,35 +103,67 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                 {activeTab === "theme" && (
                     <div className="p-6 space-y-6">
                         <div>
-                            <h3 className="text-lg font-semibold">Theme</h3>
+                            <h3 className="text-lg font-semibold">Appearance</h3>
                             <p className="text-sm text-muted-foreground mt-1">
                                 Customize the look and feel of the application.
                             </p>
                         </div>
+
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Appearance</Label>
-                                <div className="flex gap-3">
-                                    {['light', 'dark'].map((t) => (
-                                        <label
-                                            key={t}
-                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-md cursor-pointer transition-colors ${settings.theme === t
-                                                    ? 'border-primary bg-accent'
-                                                    : 'border-input hover:bg-accent'
-                                                }`}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="theme"
-                                                value={t}
-                                                checked={settings.theme === t}
-                                                onChange={() => updateSetting('theme', t as any)}
-                                                className="sr-only"
+                            <Label>Mode</Label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { value: 'light', label: 'Light', icon: <div className="h-6 w-6 rounded-full bg-[#f0f0f0] border border-gray-200" /> },
+                                    { value: 'dark', label: 'Dark', icon: <div className="h-6 w-6 rounded-full bg-[#1e1e1e] border border-gray-700" /> },
+                                    { value: 'system', label: 'System', icon: <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#f0f0f0] via-[#888] to-[#1e1e1e] border border-gray-300" /> }
+                                ].map((item) => (
+                                    <div
+                                        key={item.value}
+                                        className={`flex flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all ${settings.theme === item.value
+                                            ? "border-primary bg-accent"
+                                            : "border-muted bg-popover"
+                                            }`}
+                                        onClick={() => updateSetting('theme', item.value as any)}
+                                    >
+                                        <div className="mb-2 rounded-md p-2 bg-background shadow-sm">
+                                            {item.icon}
+                                        </div>
+                                        <span className="text-sm font-medium">{item.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <Label>Theme Preset</Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {THEMES.map((theme) => (
+                                    <div
+                                        key={theme.id}
+                                        className={`relative flex flex-col items-start justify-between rounded-xl border-2 p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all overflow-hidden ${settings.themeId === theme.id
+                                            ? "border-primary bg-accent/50"
+                                            : "border-muted bg-popover"
+                                            }`}
+                                        onClick={() => updateSetting('themeId', theme.id)}
+                                    >
+                                        <div className="flex w-full items-center gap-2 mb-2">
+                                            <div
+                                                className="h-6 w-6 rounded-full shadow-sm border"
+                                                style={{ backgroundColor: `hsl(${theme.variables['--primary']})` }}
                                             />
-                                            <span className="text-sm font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</span>
-                                        </label>
-                                    ))}
-                                </div>
+                                            <div
+                                                className="h-4 w-12 border bg-muted"
+                                                style={{ borderRadius: theme.variables['--radius'] }}
+                                            />
+                                        </div>
+                                        <span className="text-sm font-semibold">{theme.name}</span>
+                                        <span className="text-xs text-muted-foreground line-clamp-1">{theme.description}</span>
+
+                                        {settings.themeId === theme.id && (
+                                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -142,26 +174,35 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                         <div>
                             <h3 className="text-lg font-semibold">General</h3>
                             <p className="text-sm text-muted-foreground mt-1">
-                                General application settings.
+                                Configure general application behavior.
                             </p>
                         </div>
-                        <div className="space-y-6">
-                            <div className="space-y-2">
+                        <div className="grid gap-6">
+                            <div className="grid gap-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>Zoom Level</Label>
-                                    <span className="text-sm font-medium px-2 py-1 bg-muted rounded">{settings.zoomLevel}%</span>
+                                    <Label htmlFor="zoom">Zoom Level</Label>
+                                    <span className="w-12 rounded-md border border-transparent px-2 py-0.5 text-right text-sm text-muted-foreground hover:border-border">
+                                        {settings.zoomLevel}%
+                                    </span>
                                 </div>
                                 <input
+                                    id="zoom"
                                     type="range"
                                     min="80"
                                     max="150"
-                                    step="10"
+                                    step="5"
                                     value={settings.zoomLevel}
                                     onChange={(e) => updateSetting('zoomLevel', parseInt(e.target.value))}
-                                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
                                 />
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>80%</span>
+                                    <span>100%</span>
+                                    <span>150%</span>
+                                </div>
                             </div>
-                            <div className="space-y-2">
+
+                            <div className="grid gap-2">
                                 <Label htmlFor="timeout">Request Timeout (ms)</Label>
                                 <Input
                                     id="timeout"
@@ -170,19 +211,28 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                                     onChange={(e) => updateSetting('requestTimeout', parseInt(e.target.value))}
                                     className="w-[200px]"
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                    Maximum time to wait for a response before cancelling.
+                                </p>
                             </div>
+
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="redirects"
                                     checked={settings.followRedirects}
                                     onCheckedChange={(checked) => updateSetting('followRedirects', checked as boolean)}
                                 />
-                                <label
-                                    htmlFor="redirects"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                    Follow Redirects
-                                </label>
+                                <div className="grid gap-1.5 leading-none">
+                                    <label
+                                        htmlFor="redirects"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Follow Redirects
+                                    </label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Automatically follow HTTP 3xx redirect responses.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

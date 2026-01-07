@@ -3514,6 +3514,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-man"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tauri-plugin-sql",
+ "tokio",
+ "warp",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4616,21 +4631,6 @@ dependencies = [
  "thiserror 2.0.17",
  "time",
  "tokio",
-]
-
-[[package]]
-name = "tauri-rest"
-version = "0.1.0"
-dependencies = [
- "reqwest",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tauri-plugin-sql",
- "tokio",
- "warp",
 ]
 
 [[package]]

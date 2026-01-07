@@ -1,284 +1,525 @@
-import { useState, useRef, useEffect } from "react";
-import { ChevronRight, FolderOpen, Folder, Plus, Trash2, Sliders } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreHorizontal, FileText, Pencil, Trash2, Settings, Copy, Library } from "lucide-react";
 import { Collection, RequestData, Folder as FolderType } from "../App";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import ConfirmDialog from "./ConfirmDialog";
 import VariablesModal from "./VariablesModal";
-// import "./Explorer.css"; // Temporarily disabled during Tailwind migration
 
 interface ExplorerProps {
     collections: Collection[];
+    expandedCollections: Set<string>;
+    onToggleCollection: (id: string) => void;
+    expandedFolders: Set<string>;
+    onToggleFolder: (id: string) => void;
     onSelectRequest: (req: RequestData) => void;
-    onCreateCollection: (name: string) => void;
-    onCreateRequest: (parentId: string, name: string) => void;
-    onCreateFolder: (parentId: string, name: string) => void;
-    onDeleteCollection?: (collectionId: string) => void;
-    onDeleteFolder?: (folderId: string) => void;
-    onDeleteRequest?: (requestId: string) => void;
-    onUpdateCollectionVariables?: (collectionId: string, variables: { key: string; value: string; enabled: boolean }[]) => void;
+
+    // CRUD Handlers
+    onCreateCollection: () => Promise<string | undefined>;
+    onDuplicateCollection: (id: string) => void;
+    onCreateRequest: (parentId: string) => Promise<string | undefined>;
+    onCreateFolder: (parentId: string) => Promise<string | undefined>;
+    onRenameCollection: (id: string, name: string) => void;
+    onRenameFolder: (id: string, name: string) => void;
+    onRenameRequest: (id: string, name: string) => void;
+    onDeleteCollection: (id: string) => void;
+    onDeleteRequest: (id: string) => void;
+    onDeleteFolder: (id: string) => void;
+    onUpdateCollectionVariables: (id: string, vars: any[]) => void;
 }
 
-type Mode = 'request' | 'folder' | 'collection';
+// Helper to get method badge variant (duplicated from App.tsx, could be shared util)
+const getMethodVariant = (method: string): "get" | "post" | "put" | "patch" | "delete" => {
+    return method.toLowerCase() as any;
+};
 
 const Explorer = ({
     collections,
+    expandedCollections,
+    onToggleCollection,
+    expandedFolders,
+    onToggleFolder,
     onSelectRequest,
     onCreateCollection,
+    onDuplicateCollection,
     onCreateRequest,
     onCreateFolder,
+    onRenameCollection,
+    onRenameFolder,
+    onRenameRequest,
     onDeleteCollection,
-    onDeleteFolder,
     onDeleteRequest,
+    onDeleteFolder,
     onUpdateCollectionVariables
 }: ExplorerProps) => {
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['c1']));
-    const [editingState, setEditingState] = useState<{ parentId: string | null, mode: Mode } | null>(null);
-    const [inputValue, setInputValue] = useState("");
+
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
-        type: 'collection' | 'folder' | 'request';
-        id: string;
-        name: string;
+        title: string;
+        message: string;
+        onConfirm: () => void;
     } | null>(null);
+
     const [variablesModal, setVariablesModal] = useState<{
         isOpen: boolean;
         collectionId: string;
         collectionName: string;
     } | null>(null);
+
+    const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
+    const [inlineEditingValue, setInlineEditingValue] = useState("");
+    const [inlineEditingType, setInlineEditingType] = useState<'collection' | 'folder' | 'request' | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (editingState) {
-            inputRef.current?.focus();
+        if (inlineEditingId && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
         }
-    }, [editingState]);
+    }, [inlineEditingId]);
 
-    const toggleExpand = (id: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        setExpandedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
+    const handleStartInlineEdit = (id: string, name: string, type: 'collection' | 'folder' | 'request') => {
+        setInlineEditingId(id);
+        setInlineEditingValue(name);
+        setInlineEditingType(type);
     };
 
-    const handleExpandAndEdit = (id: string, mode: Mode) => {
-        setExpandedIds(prev => {
-            const next = new Set(prev);
-            next.add(id);
-            return next;
-        });
-        setEditingState({ parentId: id, mode });
-    };
+    const handleSaveInline = () => {
+        if (!inlineEditingId || !inlineEditingType) return;
 
-    const handleConfirm = () => {
-        if (!inputValue.trim() || !editingState) {
-            setEditingState(null);
-            setInputValue("");
-            return;
+        const trimmedValue = inlineEditingValue.trim();
+        if (trimmedValue) {
+            if (inlineEditingType === 'collection') onRenameCollection(inlineEditingId, trimmedValue);
+            else if (inlineEditingType === 'folder') onRenameFolder(inlineEditingId, trimmedValue);
+            else if (inlineEditingType === 'request') onRenameRequest(inlineEditingId, trimmedValue);
         }
 
-        if (editingState.mode === 'collection') {
-            onCreateCollection(inputValue);
-        } else if (editingState.mode === 'folder' && editingState.parentId) {
-            onCreateFolder(editingState.parentId, inputValue);
-            const pid = editingState.parentId;
-            setExpandedIds(prev => {
-                const next = new Set(prev);
-                next.add(pid);
-                return next;
-            });
-        } else if (editingState.mode === 'request' && editingState.parentId) {
-            onCreateRequest(editingState.parentId, inputValue);
-            const pid = editingState.parentId;
-            setExpandedIds(prev => {
-                const next = new Set(prev);
-                next.add(pid);
-                return next;
-            });
-        }
-
-        setEditingState(null);
-        setInputValue("");
+        setInlineEditingId(null);
+        setInlineEditingValue("");
+        setInlineEditingType(null);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleConfirm();
-        if (e.key === 'Escape') {
-            setEditingState(null);
-            setInputValue("");
+        if (e.key === 'Enter') {
+            handleSaveInline();
+        } else if (e.key === 'Escape') {
+            setInlineEditingId(null);
+            setInlineEditingValue("");
+            setInlineEditingType(null);
         }
     };
 
-    const handleDelete = (e: React.MouseEvent, type: 'collection' | 'folder' | 'request', id: string, name: string) => {
-        e.stopPropagation();
-        setConfirmDialog({ isOpen: true, type, id, name });
-    };
-
-    const confirmDelete = () => {
-        if (!confirmDialog) return;
-
-        const { type, id } = confirmDialog;
-        if (type === 'collection' && onDeleteCollection) {
-            onDeleteCollection(id);
-        } else if (type === 'folder' && onDeleteFolder) {
-            onDeleteFolder(id);
-        } else if (type === 'request' && onDeleteRequest) {
-            onDeleteRequest(id);
-        }
-
-        setConfirmDialog(null);
-    };
-
-    const renderItems = (items: (RequestData | FolderType)[], parentId: string, depth: number = 0) => {
-        const elements = items.map(item => {
-            const isFolder = 'type' in item && item.type === 'folder';
-
-            if (isFolder) {
-                const folder = item as FolderType;
-                const isExpanded = expandedIds.has(folder.id);
+    // Recursive Tree Renderer
+    const renderTreeItems = (items: (RequestData | FolderType)[], level = 0) => {
+        return items.map((item) => {
+            if ('type' in item && item.type === 'folder') {
+                const isExpanded = expandedFolders.has(item.id);
                 return (
-                    <div key={folder.id} className={`folder-item ${isExpanded ? 'expanded' : ''}`}>
-                        <div className="item-header" onClick={() => toggleExpand(folder.id)}>
-                            <ChevronRight size={14} className={`chevron ${isExpanded ? 'rotated' : ''}`} />
-                            <Folder size={14} className="folder-icon" />
-                            <span className="item-name">{folder.name}</span>
-                            <div className="item-actions">
-                                <div className="action-icon-wrapper" onClick={(e) => { e.stopPropagation(); setEditingState({ parentId: folder.id, mode: 'request' }); }}>
-                                    <Plus size={14} className="action-icon" />
+                    <div key={item.id}>
+                        <ContextMenu>
+                            <ContextMenuTrigger>
+                                <div
+                                    className="flex items-center gap-2 px-2 py-1 hover:bg-accent/60 rounded-md cursor-pointer text-sm group relative overflow-hidden"
+                                    style={{ paddingLeft: `${(level + 1) * 12}px` }}
+                                    onClick={(e) => { e.stopPropagation(); onToggleFolder(item.id); }}
+                                >
+                                    {isExpanded ? <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />}
+                                    {isExpanded ? <FolderOpen className="h-4 w-4 flex-shrink-0 text-blue-500/80 fill-blue-500/10" /> : <Folder className="h-4 w-4 flex-shrink-0 text-blue-500/80 fill-blue-500/10" />}
+
+                                    {inlineEditingId === item.id ? (
+                                        <Input
+                                            ref={inputRef}
+                                            value={inlineEditingValue}
+                                            onChange={(e) => setInlineEditingValue(e.target.value)}
+                                            onBlur={handleSaveInline}
+                                            onKeyDown={handleKeyDown}
+                                            className="h-6 flex-1 py-0 px-1 text-[13px] bg-background focus-visible:ring-1 focus-visible:ring-primary"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <span className="flex-1 truncate text-[13px] text-foreground/80 group-hover:text-foreground transition-colors whitespace-nowrap min-w-0">{item.name}</span>
+                                    )}
+
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-accent/90 via-accent/80 to-transparent pl-6 absolute right-1 h-full">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 hover:bg-accent"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-40">
+                                                <DropdownMenuItem onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const id = await onCreateRequest(item.id);
+                                                    if (id) handleStartInlineEdit(id, "New Request", 'request');
+                                                }}>
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    New Request
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const id = await onCreateFolder(item.id);
+                                                    if (id) handleStartInlineEdit(id, "New Folder", 'folder');
+                                                }}>
+                                                    <Folder className="mr-2 h-4 w-4" />
+                                                    New Folder
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive group/del"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setConfirmDialog({
+                                                    isOpen: true,
+                                                    title: "Delete Folder",
+                                                    message: `Are you sure you want to delete folder "${item.name}"?`,
+                                                    onConfirm: () => onDeleteFolder(item.id)
+                                                });
+                                            }}
+                                            title="Delete Folder"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover/del:text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="action-icon-wrapper" onClick={(e) => { e.stopPropagation(); setEditingState({ parentId: folder.id, mode: 'folder' }); }}>
-                                    <Folder size={14} className="action-icon" />
-                                </div>
-                                <div className="action-icon-wrapper delete-btn" onClick={(e) => handleDelete(e, 'folder', folder.id, folder.name)}>
-                                    <Trash2 size={14} className="action-icon" />
-                                </div>
-                            </div>
-                        </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                                <ContextMenuItem onClick={async () => {
+                                    const id = await onCreateRequest(item.id);
+                                    if (id) handleStartInlineEdit(id, "New Request", 'request');
+                                }}>New Request</ContextMenuItem>
+                                <ContextMenuItem onClick={async () => {
+                                    const id = await onCreateFolder(item.id);
+                                    if (id) handleStartInlineEdit(id, "New Folder", 'folder');
+                                }}>New Folder</ContextMenuItem>
+                                <ContextMenuItem onClick={() => handleStartInlineEdit(item.id, item.name, 'folder')}>
+                                    Rename
+                                </ContextMenuItem>
+                                <ContextMenuSeparator />
+                                <ContextMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setConfirmDialog({
+                                        isOpen: true,
+                                        title: "Delete Folder",
+                                        message: `Are you sure you want to delete folder "${item.name}"?`,
+                                        onConfirm: () => onDeleteFolder(item.id)
+                                    })}
+                                >
+                                    Delete
+                                </ContextMenuItem>
+                            </ContextMenuContent>
+                        </ContextMenu>
                         {isExpanded && (
-                            <div className="item-children">
-                                {renderItems(folder.items, folder.id, depth + 1)}
+                            <div className="ml-[19px] border-l border-border/40 pl-0 mt-0.5">
+                                {renderTreeItems(item.items, level + 1)}
                             </div>
                         )}
                     </div>
                 );
             } else {
-                const req = item as RequestData;
+                const request = item as RequestData;
                 return (
-                    <div key={req.id} className="request-item" onClick={() => onSelectRequest(req)}>
-                        <div className="item-header">
-                            <span className={`method-label ${req.method.toLowerCase()}`}>{req.method}</span>
-                            <span className="item-name">{req.name}</span>
-                            <div className="item-actions">
-                                <div className="action-icon-wrapper delete-btn" onClick={(e) => handleDelete(e, 'request', req.id, req.name)}>
-                                    <Trash2 size={14} className="action-icon" />
+                    <ContextMenu key={request.id}>
+                        <ContextMenuTrigger>
+                            <div
+                                className="flex items-center gap-2 px-2 py-1 hover:bg-accent/60 rounded-md cursor-pointer text-sm group relative overflow-hidden"
+                                style={{ paddingLeft: `${(level + 2) * 12}px` }}
+                                onClick={(e) => { e.stopPropagation(); onSelectRequest(request); }}
+                            >
+                                <Badge variant={getMethodVariant(request.method)} className="text-[9px] font-bold h-4 px-1 min-w-[2.8rem] justify-center tracking-tighter uppercase border-none flex-shrink-0">
+                                    {request.method}
+                                </Badge>
+
+                                {inlineEditingId === request.id ? (
+                                    <Input
+                                        ref={inputRef}
+                                        value={inlineEditingValue}
+                                        onChange={(e) => setInlineEditingValue(e.target.value)}
+                                        onBlur={handleSaveInline}
+                                        onKeyDown={handleKeyDown}
+                                        className="h-6 flex-1 py-0 px-1 text-[13px] bg-background focus-visible:ring-1 focus-visible:ring-primary"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                ) : (
+                                    <span className="truncate flex-1 text-[13px] text-foreground/70 group-hover:text-foreground transition-colors whitespace-nowrap min-w-0">{request.name}</span>
+                                )}
+
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-accent/90 via-accent/80 to-transparent pl-6 absolute right-1 h-full">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive group/del"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setConfirmDialog({
+                                                isOpen: true,
+                                                title: "Delete Request",
+                                                message: `Are you sure you want to delete request "${request.name}"?`,
+                                                onConfirm: () => onDeleteRequest(request.id)
+                                            });
+                                        }}
+                                        title="Delete Request"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover/del:text-destructive" />
+                                    </Button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                            <ContextMenuItem onClick={() => handleStartInlineEdit(request.id, request.name, 'request')}>
+                                Rename
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setConfirmDialog({
+                                    isOpen: true,
+                                    title: "Delete Request",
+                                    message: `Are you sure you want to delete request "${request.name}"?`,
+                                    onConfirm: () => onDeleteRequest(request.id)
+                                })}
+                            >
+                                Delete
+                            </ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
                 );
             }
         });
-
-        // Add inline input
-        if (editingState && editingState.parentId === parentId) {
-            elements.push(
-                <div key="inline-input" className="item-header editing">
-                    {editingState.mode === 'request' ? (
-                        <span className="method-label get">GET</span>
-                    ) : (
-                        <Folder size={14} className="folder-icon" />
-                    )}
-                    <input
-                        ref={inputRef}
-                        className="inline-edit-input"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onBlur={handleConfirm}
-                        placeholder={`New ${editingState.mode}...`}
-                    />
-                </div>
-            );
-        }
-
-        return elements;
     };
 
+
+
     return (
-        <aside className="explorer">
-            <div className="explorer-header">
-                <span className="header-title">COLLECTIONS</span>
-                <div className="header-actions">
-                    <button className="add-btn" onClick={() => setEditingState({ parentId: null, mode: 'collection' })}>
-                        <Plus size={14} />
-                        <span>New</span>
-                    </button>
-                </div>
+        <div className="flex flex-col h-full bg-background/50">
+            <div className="px-4 py-3 border-b flex items-center justify-between bg-background sticky top-0 z-10 h-12">
+                <h2 className="text-[11px] font-bold uppercase text-muted-foreground tracking-[0.1em] flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5" />
+                    Explorer
+                </h2>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent" onClick={async () => {
+                    const id = await onCreateCollection();
+                    if (id) handleStartInlineEdit(id, "New Collection", 'collection');
+                }} title="New Collection">
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
 
-            <div className="explorer-content">
-                {collections.map(col => {
-                    const isExpanded = expandedIds.has(col.id);
+            <div className="flex-1 overflow-auto p-2 pb-10">
+                {collections.map((collection) => {
+                    const isExpanded = expandedCollections.has(collection.id);
                     return (
-                        <div key={col.id} className={`collection-item ${isExpanded ? 'expanded' : ''}`}>
-                            <div className="item-header" onClick={() => toggleExpand(col.id)}>
-                                <ChevronRight size={14} className={`chevron ${isExpanded ? 'rotated' : ''}`} />
-                                <FolderOpen size={16} className="collection-icon" />
-                                <span className="item-name">{col.name}</span>
-                                <div className="item-actions">
-                                    <div className="action-icon-wrapper" onClick={(e) => { e.stopPropagation(); setEditingState({ parentId: col.id, mode: 'request' }); }}>
-                                        <Plus size={14} className="action-icon" />
+                        <div key={collection.id} className="mb-2">
+                            <ContextMenu>
+                                <ContextMenuTrigger>
+                                    <div
+                                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent/60 rounded-md cursor-pointer font-medium text-sm group relative overflow-hidden"
+                                        onClick={() => onToggleCollection(collection.id)}
+                                    >
+                                        {isExpanded ? <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />}
+                                        <Library className="h-4 w-4 flex-shrink-0 text-primary/80" />
+
+                                        {inlineEditingId === collection.id ? (
+                                            <Input
+                                                ref={inputRef}
+                                                value={inlineEditingValue}
+                                                onChange={(e) => setInlineEditingValue(e.target.value)}
+                                                onBlur={handleSaveInline}
+                                                onKeyDown={handleKeyDown}
+                                                className="h-6 flex-1 py-0 px-1 text-[13px] bg-background focus-visible:ring-1 focus-visible:ring-primary"
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        ) : (
+                                            <span className="flex-1 font-bold text-[13px] tracking-tight text-foreground/90 group-hover:text-foreground transition-colors whitespace-nowrap truncate min-w-0">{collection.name}</span>
+                                        )}
+
+                                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-accent/90 via-accent/80 to-transparent pl-4 absolute right-1 h-full">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 hover:bg-accent"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40">
+                                                    <DropdownMenuItem onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        const id = await onCreateRequest(collection.id);
+                                                        if (id) handleStartInlineEdit(id, "New Request", 'request');
+                                                    }}>
+                                                        <FileText className="mr-2 h-4 w-4" />
+                                                        New Request
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        const id = await onCreateFolder(collection.id);
+                                                        if (id) handleStartInlineEdit(id, "New Folder", 'folder');
+                                                    }}>
+                                                        <Folder className="mr-2 h-4 w-4" />
+                                                        New Folder
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+
+
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 hover:bg-accent"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuItem onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleStartInlineEdit(collection.id, collection.name, 'collection');
+                                                    }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Rename
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setVariablesModal({
+                                                            isOpen: true,
+                                                            collectionId: collection.id,
+                                                            collectionName: collection.name
+                                                        });
+                                                    }}>
+                                                        <Settings className="mr-2 h-4 w-4" />
+                                                        Variables
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDuplicateCollection(collection.id);
+                                                    }}>
+                                                        <Copy className="mr-2 h-4 w-4" />
+                                                        Duplicate
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setConfirmDialog({
+                                                                isOpen: true,
+                                                                title: "Delete Collection",
+                                                                message: `Are you sure you want to delete collection "${collection.name}"? All requests inside will be lost.`,
+                                                                onConfirm: () => onDeleteCollection(collection.id)
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
-                                    <div className="action-icon-wrapper" onClick={(e) => { e.stopPropagation(); setEditingState({ parentId: col.id, mode: 'folder' }); }}>
-                                        <Folder size={14} className="action-icon" />
-                                    </div>
-                                    <div className="action-icon-wrapper" onClick={(e) => { e.stopPropagation(); setVariablesModal({ isOpen: true, collectionId: col.id, collectionName: col.name }); }} title="Variables">
-                                        <Sliders size={14} className="action-icon" />
-                                    </div>
-                                    <div className="action-icon-wrapper delete-btn" onClick={(e) => handleDelete(e, 'collection', col.id, col.name)}>
-                                        <Trash2 size={14} className="action-icon" />
-                                    </div>
-                                </div>
-                            </div>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                    <ContextMenuItem onClick={async () => {
+                                        const id = await onCreateRequest(collection.id);
+                                        if (id) handleStartInlineEdit(id, "New Request", 'request');
+                                    }}>New Request</ContextMenuItem>
+                                    <ContextMenuItem onClick={async () => {
+                                        const id = await onCreateFolder(collection.id);
+                                        if (id) handleStartInlineEdit(id, "New Folder", 'folder');
+                                    }}>New Folder</ContextMenuItem>
+                                    <ContextMenuItem onClick={() => handleStartInlineEdit(collection.id, collection.name, 'collection')}>
+                                        Rename
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onClick={() => setVariablesModal({
+                                        isOpen: true,
+                                        collectionId: collection.id,
+                                        collectionName: collection.name
+                                    })}>
+                                        Variables...
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => setConfirmDialog({
+                                            isOpen: true,
+                                            title: "Delete Collection",
+                                            message: `Are you sure you want to delete collection "${collection.name}"? All requests inside will be lost.`,
+                                            onConfirm: () => onDeleteCollection(collection.id)
+                                        })}
+                                    >
+                                        Delete Collection
+                                    </ContextMenuItem>
+                                </ContextMenuContent>
+                            </ContextMenu>
+
                             {isExpanded && (
-                                <div className="item-children">
-                                    {renderItems(col.items, col.id)}
+                                <div className="mt-1 animate-in fade-in-50 slide-in-from-top-1 duration-200 ml-[11px] border-l border-border/40 pl-0">
+                                    {renderTreeItems(collection.items)}
+                                    {collection.items.length === 0 && (
+                                        <div className="pl-8 py-2 text-xs text-muted-foreground italic">
+                                            Empty collection. Right click to add items.
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
                     );
                 })}
 
-                {editingState && editingState.mode === 'collection' && !editingState.parentId && (
-                    <div className="collection-item editing">
-                        <div className="item-header">
-                            <ChevronRight size={14} className="chevron rotated" />
-                            <FolderOpen size={16} className="collection-icon" />
-                            <input
-                                ref={inputRef}
-                                className="inline-edit-input"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                onBlur={handleConfirm}
-                                placeholder="New Collection..."
-                            />
-                        </div>
+                {collections.length === 0 && (
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                        No collections found down here.
+                        <br />
+                        <Button variant="link" onClick={onCreateCollection} className="mt-2">
+                            Create your first collection
+                        </Button>
                     </div>
                 )}
             </div>
 
+            {/* Dialogs */}
             <ConfirmDialog
-                isOpen={confirmDialog?.isOpen || false}
-                title="Confirm Deletion"
-                message={`Are you sure you want to delete "${confirmDialog?.name}"? This action cannot be undone.`}
-                onConfirm={confirmDelete}
+                isOpen={!!confirmDialog}
+                title={confirmDialog?.title || ""}
+                message={confirmDialog?.message || ""}
+                onConfirm={() => {
+                    confirmDialog?.onConfirm();
+                    setConfirmDialog(null);
+                }}
                 onCancel={() => setConfirmDialog(null)}
             />
+
+
 
             {variablesModal && (
                 <VariablesModal
@@ -286,15 +527,13 @@ const Explorer = ({
                     collectionName={variablesModal.collectionName}
                     variables={collections.find(c => c.id === variablesModal.collectionId)?.variables || []}
                     onSave={(variables) => {
-                        if (onUpdateCollectionVariables) {
-                            onUpdateCollectionVariables(variablesModal.collectionId, variables);
-                        }
+                        onUpdateCollectionVariables(variablesModal.collectionId, variables);
                         setVariablesModal(null);
                     }}
                     onClose={() => setVariablesModal(null)}
                 />
             )}
-        </aside>
+        </div>
     );
 };
 

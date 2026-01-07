@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Variable {
     key: string;
@@ -35,8 +36,6 @@ interface VariablesModalProps {
 
 const VariablesModal = ({ isOpen, collectionName, variables, onSave, onClose }: VariablesModalProps) => {
     const [localVariables, setLocalVariables] = useState<Variable[]>(variables);
-    // Autocomplete state preserved but implementation simplified for this modal context if needed
-    // For now, we'll keep the logic but adapt the UI
     const [autocomplete, setAutocomplete] = useState<{
         active: boolean;
         variableIndex: number;
@@ -107,90 +106,105 @@ const VariablesModal = ({ isOpen, collectionName, variables, onSave, onClose }: 
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
-                <DialogHeader>
+            <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-2 border-b">
                     <DialogTitle>Collection Variables</DialogTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mt-1.5">
                         Manage variables for <span className="font-medium text-foreground">{collectionName}</span>
                     </p>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-auto py-4">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50px]"></TableHead>
-                                <TableHead>Key</TableHead>
-                                <TableHead>Value</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {localVariables.map((variable, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={variable.enabled}
-                                            onCheckedChange={(checked) => handleUpdateVariable(index, 'enabled', checked === true)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input
-                                            placeholder="Variable name"
-                                            value={variable.key}
-                                            onChange={(e) => handleUpdateVariable(index, 'key', e.target.value)}
-                                            className="h-8"
-                                        />
-                                    </TableCell>
-                                    <TableCell className="relative">
-                                        <Input
-                                            placeholder="Value"
-                                            value={variable.value}
-                                            onChange={(e) => handleUpdateVariable(index, 'value', e.target.value)}
-                                            className="h-8"
-                                        />
-                                        {/* Simple Autocomplete Dropdown */}
-                                        {autocomplete && autocomplete.active && autocomplete.variableIndex === index && (
-                                            <div className="absolute top-full left-0 z-50 w-full bg-popover border rounded-md shadow-md mt-1 max-h-40 overflow-auto">
-                                                {autocomplete.suggestions.map((s, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                                        onClick={() => insertVariable(s)}
-                                                    >
-                                                        <span className="font-medium text-primary">{s.key}</span>
-                                                        <span className="ml-2 text-muted-foreground text-xs">{s.value}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleRemoveVariable(index)}
-                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                        >
-                                            <Trash2 size={16} />
-                                        </Button>
-                                    </TableCell>
+                <div className="flex-1 overflow-hidden flex flex-col bg-muted/5">
+                    <div className="border-b bg-muted/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent border-none">
+                                    <TableHead className="w-[50px] text-center"></TableHead>
+                                    <TableHead>Key</TableHead>
+                                    <TableHead>Value</TableHead>
+                                    <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
-                            ))}
-                            {localVariables.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
-                                        No variables defined. Click "Add Variable" to create one.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                        </Table>
+                    </div>
+
+                    <ScrollArea className="flex-1">
+                        <Table>
+                            <TableBody>
+                                {localVariables.map((variable, index) => (
+                                    <TableRow key={index} className="hover:bg-muted/30 border-b border-border/40 group">
+                                        <TableCell className="w-[50px] p-2 text-center align-middle">
+                                            <Checkbox
+                                                checked={variable.enabled}
+                                                onCheckedChange={(checked) => handleUpdateVariable(index, 'enabled', checked === true)}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-2 align-middle">
+                                            <Input
+                                                placeholder="Variable name"
+                                                value={variable.key}
+                                                onChange={(e) => handleUpdateVariable(index, 'key', e.target.value)}
+                                                className="h-8 bg-transparent border-transparent focus:bg-background focus:border-input transition-colors shadow-none"
+                                            />
+                                        </TableCell>
+                                        <TableCell className="p-2 align-middle relative">
+                                            <Input
+                                                placeholder="Value"
+                                                value={variable.value}
+                                                onChange={(e) => handleUpdateVariable(index, 'value', e.target.value)}
+                                                className="h-8 bg-transparent border-transparent focus:bg-background focus:border-input transition-colors shadow-none"
+                                            />
+                                            {/* Autocomplete Dropdown */}
+                                            {autocomplete && autocomplete.active && autocomplete.variableIndex === index && (
+                                                <div className="absolute top-full left-2 right-2 z-50 bg-popover border border-border rounded-md shadow-lg mt-1 max-h-40 overflow-auto animate-in fade-in zoom-in-95 duration-100">
+                                                    {autocomplete.suggestions.map((s, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm group"
+                                                            onClick={() => insertVariable(s)}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded border font-mono text-primary group-hover:border-primary/30">{`{{${s.key}}}`}</code>
+                                                                <span className="text-muted-foreground text-xs group-hover:text-foreground transition-colors">{s.value}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="w-[50px] p-2 text-center align-middle">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRemoveVariable(index)}
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 size={15} />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {localVariables.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground h-32">
+                                            No variables defined. <br />
+                                            <span
+                                                className="text-primary hover:underline cursor-pointer"
+                                                onClick={handleAddVariable}
+                                            >
+                                                Add a new variable
+                                            </span> to get started.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
                 </div>
 
-                <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
-                    <Button variant="outline" onClick={handleAddVariable}>
-                        <Plus size={16} className="mr-2" />
+                <DialogFooter className="p-4 border-t bg-background flex items-center justify-between sm:justify-between w-full z-10">
+                    <Button variant="outline" onClick={handleAddVariable} className="gap-2">
+                        <Plus size={16} />
                         Add Variable
                     </Button>
                     <div className="flex gap-2">

@@ -83,7 +83,8 @@ class DatabaseService {
           method TEXT NOT NULL,
           url TEXT NOT NULL,
           timestamp INTEGER NOT NULL,
-          status INTEGER
+          status INTEGER,
+          duration INTEGER
         );
       `);
 
@@ -140,8 +141,8 @@ class DatabaseService {
         // Add new columns to 'collections' (for existing databases)
         try { await this.db.execute(`ALTER TABLE collections ADD COLUMN created_at INTEGER`); } catch (e) { }
 
-        // Add new columns to 'collections' (for existing databases)
-        try { await this.db.execute(`ALTER TABLE collections ADD COLUMN created_at INTEGER`); } catch (e) { }
+        // Add new columns to 'history' (for existing databases)
+        try { await this.db.execute(`ALTER TABLE history ADD COLUMN duration INTEGER`); } catch (e) { }
 
         // RESET STATE: Ensure no servers are marked as running on startup (since backend processes are gone)
         await this.db.execute(`UPDATE mock_servers SET status = 'stopped'`);
@@ -563,8 +564,8 @@ class DatabaseService {
     async createCollection(collection: Collection) {
         if (!this.db) throw new Error("DB not initialized");
         await this.db.execute(
-            'INSERT INTO collections (id, name, created_at) VALUES (?, ?, ?)',
-            [collection.id, collection.name, Date.now()]
+            'INSERT INTO collections (id, name, type, created_at) VALUES (?, ?, ?, ?)',
+            [collection.id, collection.name, 'collection', Date.now()]
         );
 
         if (collection.variables) {
