@@ -12,9 +12,6 @@
     "sql:allow-execute",
     "sql:allow-select",
     "sql:allow-close",
-    "dialog:default",
-    "updater:default",
-    "process:default",
-    "process:allow-restart"
+    "dialog:default"
   ]
 }
