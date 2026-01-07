@@ -98,8 +98,6 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-        with:
-          path: artifacts
 
       - name: Get version
         id: get_version
@@ -110,16 +108,13 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: List artifacts
-        run: find artifacts -type f -name "*"
+        run: ls -R
 
       - name: Generate latest.json
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
-          ARTIFACTS_DIR: artifacts
+          ARTIFACTS_DIR: .
         run: node scripts/generate-latest.js
 
       - name: Checkout Release Repo
