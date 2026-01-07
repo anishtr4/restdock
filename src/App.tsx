@@ -1,18 +1,30 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import "./App.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, History as HistoryIcon, Server } from "lucide-react";
-import RequestPanel from "./components/RequestPanel";
-import ResponsePanel from "./components/ResponsePanel";
-import SettingsView, { AppSettings } from "./components/SettingsView";
-import MockServerView from "./components/MockServerView";
-import Explorer from "./components/Explorer";
 import { dbService } from "./services/db";
 import { ScrollableTabs } from "./components/ScrollableTabs";
 import { TopBar } from "./components/TopBar";
 import { THEMES, ALL_THEME_KEYS } from "@/lib/themes";
 import { listen } from "@tauri-apps/api/event";
+
+// Lazy load heavy components
+const RequestPanel = lazy(() => import("./components/RequestPanel"));
+const ResponsePanel = lazy(() => import("./components/ResponsePanel"));
+const SettingsView = lazy(() => import("./components/SettingsView"));
+const MockServerView = lazy(() => import("./components/MockServerView"));
+const Explorer = lazy(() => import("./components/Explorer"));
+
+// Loading fallback for lazy components
+const PanelLoader = () => (
+  <div className="flex-1 flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+// Import types
+import type { AppSettings } from "./components/SettingsView";
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -649,25 +661,27 @@ function App() {
             style={!isBento ? { backgroundColor: 'var(--sidebar-bg, var(--background))', color: 'var(--sidebar-fg, var(--foreground))' } : {}}
           >
             {activeView === "collections" ? (
-              <Explorer
-                collections={collections}
-                expandedCollections={expandedCollections}
-                onToggleCollection={toggleCollection}
-                expandedFolders={expandedFolders}
-                onToggleFolder={toggleFolder}
-                onSelectRequest={handleSelectRequest}
-                onCreateCollection={handleCreateCollection}
-                onDuplicateCollection={handleDuplicateCollection}
-                onCreateRequest={handleCreateRequest}
-                onCreateFolder={handleCreateFolder}
-                onRenameCollection={handleRenameCollection}
-                onRenameFolder={handleRenameFolder}
-                onRenameRequest={handleRenameRequest}
-                onDeleteCollection={handleDeleteCollection}
-                onDeleteRequest={handleDeleteRequest}
-                onDeleteFolder={handleDeleteFolder}
-                onUpdateCollectionVariables={handleUpdateCollectionVariables}
-              />
+              <Suspense fallback={<PanelLoader />}>
+                <Explorer
+                  collections={collections}
+                  expandedCollections={expandedCollections}
+                  onToggleCollection={toggleCollection}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
+                  onSelectRequest={handleSelectRequest}
+                  onCreateCollection={handleCreateCollection}
+                  onDuplicateCollection={handleDuplicateCollection}
+                  onCreateRequest={handleCreateRequest}
+                  onCreateFolder={handleCreateFolder}
+                  onRenameCollection={handleRenameCollection}
+                  onRenameFolder={handleRenameFolder}
+                  onRenameRequest={handleRenameRequest}
+                  onDeleteCollection={handleDeleteCollection}
+                  onDeleteRequest={handleDeleteRequest}
+                  onDeleteFolder={handleDeleteFolder}
+                  onUpdateCollectionVariables={handleUpdateCollectionVariables}
+                />
+              </Suspense>
             ) : (
               <>
                 <div className="p-3 border-b flex items-center justify-between">
@@ -711,21 +725,25 @@ function App() {
         >
           {activeView === "settings" && (
             <div className="flex-1 overflow-auto">
-              <SettingsView
-                globalVariables={globalVariables}
-                onGlobalVariablesChange={handleSaveGlobalVariables}
-                settings={settings}
-                onSettingsChange={setSettings}
-              />
+              <Suspense fallback={<PanelLoader />}>
+                <SettingsView
+                  globalVariables={globalVariables}
+                  onGlobalVariablesChange={handleSaveGlobalVariables}
+                  settings={settings}
+                  onSettingsChange={setSettings}
+                />
+              </Suspense>
             </div>
           )}
 
           {activeView === "mock_server" && (
             <div className="flex-1 overflow-auto">
-              <MockServerView
-                logs={mockLogs}
-                setLogs={setMockLogs}
-              />
+              <Suspense fallback={<PanelLoader />}>
+                <MockServerView
+                  logs={mockLogs}
+                  setLogs={setMockLogs}
+                />
+              </Suspense>
             </div>
           )}
 
@@ -743,41 +761,45 @@ function App() {
               {/* Request/Response Area */}
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex-1 border-b overflow-hidden flex flex-col">
-                  {activeRequest ? (
-                    <RequestPanel
-                      request={activeRequest}
-                      setRequest={setActiveRequest}
-                      setResponse={(newResponse: any) => {
-                        setResponse(newResponse);
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
-                      }}
-                      setLoading={(isLoading: boolean) => {
-                        setLoading(isLoading);
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
-                      }}
-                      onSave={handleSaveRequest}
-                      onHistoryAdd={async (entry: any) => {
-                        const newEntry = {
-                          id: `h-${Date.now()}`,
-                          method: entry.method,
-                          url: entry.url,
-                          timestamp: Date.now(),
-                          status: entry.status
-                        };
-                        await dbService.addToHistory(newEntry);
-                        setHistory(prev => [newEntry, ...prev]);
-                      }}
-                      collectionVariables={collections[0]?.variables || []}
-                      settings={settings}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Select a request to start
-                    </div>
-                  )}
+                  <Suspense fallback={<PanelLoader />}>
+                    {activeRequest ? (
+                      <RequestPanel
+                        request={activeRequest}
+                        setRequest={setActiveRequest}
+                        setResponse={(newResponse: any) => {
+                          setResponse(newResponse);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
+                        }}
+                        setLoading={(isLoading: boolean) => {
+                          setLoading(isLoading);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
+                        }}
+                        onSave={handleSaveRequest}
+                        onHistoryAdd={async (entry: any) => {
+                          const newEntry = {
+                            id: `h-${Date.now()}`,
+                            method: entry.method,
+                            url: entry.url,
+                            timestamp: Date.now(),
+                            status: entry.status
+                          };
+                          await dbService.addToHistory(newEntry);
+                          setHistory(prev => [newEntry, ...prev]);
+                        }}
+                        collectionVariables={collections[0]?.variables || []}
+                        settings={settings}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        Select a request to start
+                      </div>
+                    )}
+                  </Suspense>
                 </div>
                 <div className="h-80 overflow-auto">
-                  <ResponsePanel response={response} loading={loading} />
+                  <Suspense fallback={<PanelLoader />}>
+                    <ResponsePanel response={response} loading={loading} />
+                  </Suspense>
                 </div>
               </div>
             </>
