@@ -6,21 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
-import { THEMES } from "@/lib/themes";
+
+
+import { AppSettings } from "@/types";
 
 interface GlobalVar {
     key: string;
     value: string;
     enabled: boolean;
     description?: string;
-}
-
-export interface AppSettings {
-    theme: 'light' | 'dark' | 'system';
-    themeId: string;
-    zoomLevel: number;
-    requestTimeout: number;
-    followRedirects: boolean;
 }
 
 interface SettingsViewProps {
@@ -134,38 +128,7 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                             </div>
                         </div>
 
-                        <div className="space-y-4 pt-4 border-t">
-                            <Label>Theme Preset</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {THEMES.map((theme) => (
-                                    <div
-                                        key={theme.id}
-                                        className={`relative flex flex-col items-start justify-between rounded-xl border-2 p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all overflow-hidden ${settings.themeId === theme.id
-                                            ? "border-primary bg-accent/50"
-                                            : "border-muted bg-popover"
-                                            }`}
-                                        onClick={() => updateSetting('themeId', theme.id)}
-                                    >
-                                        <div className="flex w-full items-center gap-2 mb-2">
-                                            <div
-                                                className="h-6 w-6 rounded-full shadow-sm border"
-                                                style={{ backgroundColor: `hsl(${theme.variables['--primary']})` }}
-                                            />
-                                            <div
-                                                className="h-4 w-12 border bg-muted"
-                                                style={{ borderRadius: theme.variables['--radius'] }}
-                                            />
-                                        </div>
-                                        <span className="text-sm font-semibold">{theme.name}</span>
-                                        <span className="text-xs text-muted-foreground line-clamp-1">{theme.description}</span>
 
-                                        {settings.themeId === theme.id && (
-                                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 )}
 

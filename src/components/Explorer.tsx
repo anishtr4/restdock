@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreHorizontal, FileText, Pencil, Trash2, Settings, Copy, Library } from "lucide-react";
-import { Collection, RequestData, Folder as FolderType } from "../App";
+import { Collection, RequestData, Folder as FolderType } from "@/types";
 import {
     ContextMenu,
     ContextMenuContent,

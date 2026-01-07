@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tab } from "../App";
+import { Tab } from "@/types";
 
 interface ScrollableTabsProps {
     tabs: Tab[];
@@ -82,7 +82,7 @@ export const ScrollableTabs = ({
 
             <div
                 ref={scrollContainerRef}
-                className="flex items-center flex-1 min-w-0 overflow-x-auto thin-scrollbar scroll-smooth px-2 gap-1"
+                className="flex items-center flex-1 min-w-0 overflow-x-auto scroll-smooth gap-0.5 hide-scrollbar"
                 onScroll={checkScroll}
                 onWheel={(e) => {
                     if (scrollContainerRef.current) {
@@ -90,28 +90,28 @@ export const ScrollableTabs = ({
                     }
                 }}
                 style={{
-                    scrollbarWidth: 'none',  /* Firefox */
-                    msOverflowStyle: 'none'  /* IE and Edge */
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
                 }}
             >
                 {tabs.map((tab) => (
                     <div
                         key={tab.id}
                         data-tab-id={tab.id}
-                        className={`flex items-center gap-2 px-3 py-2 border-b-2 cursor-pointer group whitespace-nowrap min-w-[120px] max-w-[200px] flex-shrink-0 ${activeTabId === tab.id
+                        className={`flex items-center gap-1.5 px-2 py-1.5 border-b-2 cursor-pointer group whitespace-nowrap min-w-[100px] max-w-[160px] flex-shrink-0 text-xs ${activeTabId === tab.id
                             ? 'border-primary bg-accent'
-                            : 'border-transparent hover:bg-accent'
+                            : 'border-transparent hover:bg-accent/50'
                             }`}
                         onClick={() => onTabSelect(tab.id)}
                     >
-                        <Badge variant={getMethodVariant(tab.method)} className="text-xs px-1.5 py-0 flex-shrink-0">
+                        <Badge variant={getMethodVariant(tab.method)} className="text-[10px] px-1 py-0 h-4 flex-shrink-0">
                             {tab.method}
                         </Badge>
-                        <span className="text-sm truncate flex-1">{tab.name}</span>
+                        <span className="text-xs truncate flex-1">{tab.name}</span>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                            className="h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0 p-0"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onTabClose(tab.id);

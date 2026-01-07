@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import "./App.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, History as HistoryIcon, Server } from "lucide-react";
+import { FileText, History as HistoryIcon, Server, Plus } from "lucide-react";
 import { dbService } from "./services/db";
 import { ScrollableTabs } from "./components/ScrollableTabs";
 import { TopBar } from "./components/TopBar";
@@ -20,57 +20,12 @@ const MockServerView = lazy(() => import("./components/MockServerView"));
 const Explorer = lazy(() => import("./components/Explorer"));
 
 // Import types
-import type { AppSettings } from "./components/SettingsView";
-
-export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-
-export interface RequestData {
-  id: string;
-  name: string;
-  method: RequestMethod;
-  url: string;
-  body?: string;
-  headers?: { key: string; value: string; active: boolean; description?: string }[];
-  params?: { key: string; value: string; active: boolean; description?: string }[];
-  auth?: any;
-  type?: 'request';
-}
-
-export interface Folder {
-  id: string;
-  name: string;
-  type: 'folder';
-  items: (RequestData | Folder)[];
-}
-
-export interface Collection {
-  id: string;
-  name: string;
-  type: 'collection';
-  items: (RequestData | Folder)[];
-  variables?: { key: string; value: string; enabled: boolean }[];
-}
-
-export interface Tab {
-  id: string;
-  requestId: string | null;
-  name: string;
-  method: RequestMethod;
-  response?: any;
-  loading?: boolean;
-}
-
-export interface HistoryEntry {
-  id: string;
-  method: string;
-  url: string;
-  timestamp: number;
-  status?: number;
-}
+import { AppSettings, RequestData, Collection, Folder, Tab, HistoryEntry, RequestMethod } from "@/types";
+import { SaveRequestDialog } from "./components/SaveRequestDialog";
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
-  themeId: 'rust',
+  themeId: 'standard',
   zoomLevel: 100,
   requestTimeout: 10000,
   followRedirects: true
@@ -224,6 +179,46 @@ function App() {
     }
   }, []);
 
+  // Sync activeRequest when switching tabs
+  useEffect(() => {
+    if (!activeTabId || tabs.length === 0) {
+      return;
+    }
+
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+
+    // Check if we have a cached request for this tab
+    const cachedRequest = tabRequestCache.current.get(activeTabId);
+    if (cachedRequest) {
+      setActiveRequest(cachedRequest);
+      return;
+    }
+
+    // If tab has a requestId, load from collection
+    if (activeTab.requestId) {
+      for (const col of collections) {
+        const found = findRequestById(col.items, activeTab.requestId);
+        if (found) {
+          setActiveRequest(found);
+          tabRequestCache.current.set(activeTabId, found);
+          return;
+        }
+      }
+    }
+
+    // Otherwise create a blank request for this tab
+    const blankRequest: RequestData = {
+      id: `r-${Date.now()}`,
+      name: activeTab.name || "Untitled Request",
+      method: activeTab.method || "GET",
+      url: "",
+      headers: [],
+      params: []
+    };
+    setActiveRequest(blankRequest);
+    tabRequestCache.current.set(activeTabId, blankRequest);
+  }, [activeTabId, tabs, collections]);
 
   // Recursive search helper
   const findRequestById = (items: any[], id: string): RequestData | undefined => {
@@ -239,6 +234,16 @@ function App() {
 
   // Tab management
   const handleAddTab = (request?: RequestData) => {
+    // If a request is provided, check if it's already open in a tab
+    if (request) {
+      const existingTab = tabs.find(t => t.requestId === request.id);
+      if (existingTab) {
+        // Switch to existing tab instead of creating a new one
+        setActiveTabId(existingTab.id);
+        return;
+      }
+    }
+
     const newTabId = `t${Date.now()}`;
     const newTab: Tab = request
       ? { id: newTabId, requestId: request.id, name: request.name, method: request.method }
@@ -249,6 +254,7 @@ function App() {
 
     if (request) {
       setActiveRequest(request);
+      tabRequestCache.current.set(newTabId, request);
       setResponse(null);
     } else {
       const blankRequest: RequestData = {
@@ -260,6 +266,7 @@ function App() {
         params: []
       };
       setActiveRequest(blankRequest);
+      tabRequestCache.current.set(newTabId, blankRequest);
       setResponse(null);
     }
   };
@@ -268,16 +275,18 @@ function App() {
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     const newTabs = tabs.filter(t => t.id !== tabId);
 
-    if (newTabs.length === 0) {
-      handleAddTab();
-      return;
-    }
-
     setTabs(newTabs);
 
+    // If closing the active tab, select another or clear
     if (activeTabId === tabId) {
-      const newActiveIndex = Math.min(tabIndex, newTabs.length - 1);
-      setActiveTabId(newTabs[newActiveIndex].id);
+      if (newTabs.length > 0) {
+        const newActiveIndex = Math.min(tabIndex, newTabs.length - 1);
+        setActiveTabId(newTabs[newActiveIndex].id);
+      } else {
+        setActiveTabId('');
+        setActiveRequest(null);
+        setResponse(null);
+      }
     }
 
     tabRequestCache.current.delete(tabId);
@@ -287,12 +296,7 @@ function App() {
     handleAddTab(request);
   };
 
-  const handleSaveRequest = async (request: RequestData) => {
-    if (!collections[0]) return;
-    await dbService.saveRequest(request, collections[0].id);
-    const updated = await dbService.getCollections();
-    setCollections(updated);
-  };
+
 
   const handleSaveGlobalVariables = async (vars: { key: string; value: string; enabled: boolean; description?: string }[]) => {
     setGlobalVariables(vars);
@@ -514,6 +518,70 @@ function App() {
     setCollections(updated);
   };
 
+  const [saveDialogState, setSaveDialogState] = useState<{ open: boolean; requestName?: string }>({ open: false });
+
+  const handleSaveRequest = async (request: RequestData) => {
+    // If request has collection context (and not virtual "New Request"), save directly
+    let collectionId: string | undefined;
+    let parentId: string | null = null;
+
+    const findItem = (items: (RequestData | Folder)[], targetId: string, _pId: string | null): boolean => {
+      for (const item of items) {
+        if (item.id === targetId) {
+          // simplified check
+          return true;
+        }
+        if ('type' in item && item.type === 'folder') {
+          if (findItem(item.items, targetId, item.id)) {
+            parentId = item.id;
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    // Robust context lookup
+    for (const col of collections) {
+      if (findItem(col.items, request.id, null)) {
+        collectionId = col.id;
+        break;
+      }
+    }
+
+    // Check if it's a "real" saved request in the DB
+    if (collectionId) {
+      await dbService.saveRequest(request, collectionId, parentId, 'request');
+      const updated = await dbService.getCollections();
+      setCollections(updated);
+
+      // Update tab
+      setTabs(prev => prev.map(t => t.requestId === request.id ? { ...t, name: request.name, method: request.method } : t));
+      return;
+    }
+
+    // If we are here, it's a new request that needs a destination
+    setActiveRequest(request); // key: ensure we are saving the current one
+    setSaveDialogState({ open: true, requestName: request.name });
+  };
+
+  const handleDialogSave = async (name: string, collectionId: string, folderId?: string | null) => {
+    if (!activeRequest) return;
+
+    const newReq = { ...activeRequest, name, id: `r-${Date.now()}` };
+    await dbService.saveRequest(newReq, collectionId, folderId || null, 'request');
+
+    const updated = await dbService.getCollections();
+    setCollections(updated);
+
+    // Update the active tab to point to the new saved request
+    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, requestId: newReq.id, name: newReq.name, method: newReq.method } : t));
+
+    // Select the new request
+    setActiveRequest(newReq);
+    setSaveDialogState({ open: false });
+  };
+
   const handleRenameFolder = async (id: string, name: string) => {
     let collectionId: string | undefined;
     const findItemContext = (items: (RequestData | Folder)[], targetId: string, currentParentId: string | null): { item: RequestData | Folder, parentId: string | null } | null => {
@@ -614,16 +682,67 @@ function App() {
 
   return (
     <div
-      className={`h-screen w-full flex flex-col overflow-hidden bg-background text-foreground animate-fade-in transition-all duration-300 ${isBento ? 'p-3 gap-3' : 'border border-border'}`}
-      style={{
-        backgroundImage: activeTheme.variables['--app-bg'] || 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}
+      className={`h-screen w-full flex flex-col overflow-hidden text-foreground animate-fade-in transition-all duration-300 relative ${isBento ? 'p-3 gap-3' : 'border border-border'}`}
+      style={{ backgroundColor: 'hsl(var(--background))' }}
     >
+      {/* Animated Background Orbs Layer */}
+      <div
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+      >
+        {/* Dot pattern overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'radial-gradient(circle, hsl(15 70% 50% / 0.12) 1.5px, transparent 1.5px)',
+            backgroundSize: '30px 30px',
+          }}
+        />
+        {/* Large rust orb - top right */}
+        <div
+          className="absolute w-[400px] h-[400px] rounded-full blur-[100px]"
+          style={{
+            background: 'hsl(15 90% 50% / 0.2)',
+            top: '-10%',
+            right: '10%',
+            animation: 'float 8s ease-in-out infinite'
+          }}
+        />
+        {/* Medium orb - center */}
+        <div
+          className="absolute w-[300px] h-[300px] rounded-full blur-[80px]"
+          style={{
+            background: 'hsl(12 85% 48% / 0.15)',
+            top: '40%',
+            left: '50%',
+            animation: 'float 10s ease-in-out infinite reverse'
+          }}
+        />
+        {/* Small orb - bottom left */}
+        <div
+          className="absolute w-[250px] h-[250px] rounded-full blur-[60px]"
+          style={{
+            background: 'hsl(18 90% 52% / 0.12)',
+            bottom: '10%',
+            left: '20%',
+            animation: 'float 12s ease-in-out infinite'
+          }}
+        />
+        {/* Small orb - bottom right */}
+        <div
+          className="absolute w-[200px] h-[200px] rounded-full blur-[50px]"
+          style={{
+            background: 'hsl(10 85% 45% / 0.1)',
+            bottom: '20%',
+            right: '25%',
+            animation: 'float 9s ease-in-out infinite reverse'
+          }}
+        />
+      </div>
+
       {/* TopBar - Floating in Bento, Structured in Classic */}
       <div
-        className={`${isBento ? 'rounded-xl border bg-background/70 backdrop-blur-xl shadow-sm z-50 relative' : 'border-b z-20 relative'}`}
+        className={`${isBento ? 'rounded-xl glass-panel shadow-lg z-50 relative' : 'border-b z-20 relative'}`}
         style={!isBento ? { backgroundColor: 'var(--topbar-bg, var(--background))', color: 'var(--topbar-fg, var(--foreground))' } : {}}
       >
         <TopBar
@@ -637,7 +756,7 @@ function App() {
       <div className={`flex-1 flex overflow-hidden ${isBento ? 'gap-3' : ''}`}>
         {/* Activity Bar */}
         <div
-          className={`w-14 flex flex-col items-center py-2 gap-4 ${isBento ? 'rounded-xl border bg-background/70 backdrop-blur-xl shadow-sm' : 'border-r z-10 relative'}`}
+          className={`w-14 flex flex-col items-center py-2 gap-4 ${isBento ? 'rounded-xl glass-panel shadow-lg' : 'border-r z-10 relative'}`}
           style={!isBento ? { backgroundColor: 'var(--activity-bg, var(--muted))', color: 'var(--activity-fg, var(--muted-foreground))' } : {}}
         >
           <Button
@@ -670,7 +789,7 @@ function App() {
         {/* Sidebar */}
         {(activeView === "collections" || activeView === "history") && (
           <div
-            className={`w-64 flex flex-col ${isBento ? 'rounded-xl border bg-background/70 backdrop-blur-xl shadow-sm overflow-hidden' : 'border-r relative'}`}
+            className={`w-64 flex flex-col ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : 'border-r relative'}`}
             style={!isBento ? { backgroundColor: 'var(--sidebar-bg, var(--background))', color: 'var(--sidebar-fg, var(--foreground))' } : {}}
           >
             {activeView === "collections" ? (
@@ -733,7 +852,7 @@ function App() {
 
         {/* Main Content */}
         <div
-          className={`flex-1 flex flex-col min-w-0 ${isBento ? 'rounded-xl border bg-background/70 backdrop-blur-xl shadow-sm overflow-hidden' : ''}`}
+          className={`flex-1 flex flex-col min-w-0 ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : ''}`}
           style={!isBento ? { backgroundColor: 'var(--content-bg, transparent)' } : {}}
         >
           {activeView === "settings" && (
@@ -762,67 +881,103 @@ function App() {
 
           {(activeView === "collections" || activeView === "history") && (
             <>
-              {/* Tab Bar */}
-              <ScrollableTabs
-                tabs={tabs}
-                activeTabId={activeTabId}
-                onTabSelect={setActiveTabId}
-                onTabClose={handleCloseTab}
-                onTabAdd={() => handleAddTab()}
-              />
+              {tabs.length > 0 ? (
+                <>
+                  {/* Tab Bar */}
+                  <ScrollableTabs
+                    tabs={tabs}
+                    activeTabId={activeTabId}
+                    onTabSelect={setActiveTabId}
+                    onTabClose={handleCloseTab}
+                    onTabAdd={() => handleAddTab()}
+                  />
 
-              {/* Request/Response Area */}
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="flex-1 border-b overflow-hidden flex flex-col">
-                  <Suspense fallback={<PanelSkeleton />}>
-                    {activeRequest ? (
-                      <RequestPanel
-                        request={activeRequest}
-                        setRequest={setActiveRequest}
-                        setResponse={(newResponse: any) => {
-                          setResponse(newResponse);
-                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
-                        }}
-                        setLoading={(isLoading: boolean) => {
-                          setLoading(isLoading);
-                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
-                        }}
-                        onSave={handleSaveRequest}
-                        onHistoryAdd={async (entry: any) => {
-                          const newEntry = {
-                            id: `h-${Date.now()}`,
-                            method: entry.method,
-                            url: entry.url,
-                            timestamp: Date.now(),
-                            status: entry.status
-                          };
-                          await dbService.addToHistory(newEntry);
-                          setHistory(prev => [newEntry, ...prev]);
-                        }}
-                        collectionVariables={[
-                          ...(collections[0]?.variables || []),
-                          ...(globalVariables || []),
-                          ...(globalVariables || []).map(v => ({ ...v, key: `global.${v.key}` }))
-                        ]}
-                        settings={settings}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        Select a request to start
-                      </div>
-                    )}
-                  </Suspense>
+                  {/* Request/Response Area */}
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 border-b overflow-hidden flex flex-col">
+                      <Suspense fallback={<PanelSkeleton />}>
+                        {activeRequest ? (
+                          <RequestPanel
+                            request={activeRequest}
+                            setRequest={(newRequest: RequestData | null) => {
+                              setActiveRequest(newRequest);
+                              if (newRequest && activeTabId) {
+                                tabRequestCache.current.set(activeTabId, newRequest);
+                              }
+                            }}
+                            setResponse={(newResponse: any) => {
+                              setResponse(newResponse);
+                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
+                            }}
+                            setLoading={(isLoading: boolean) => {
+                              setLoading(isLoading);
+                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
+                            }}
+                            onSave={handleSaveRequest}
+                            onHistoryAdd={async (entry: any) => {
+                              const newEntry = {
+                                id: `h-${Date.now()}`,
+                                method: entry.method,
+                                url: entry.url,
+                                timestamp: Date.now(),
+                                status: entry.status
+                              };
+                              await dbService.addToHistory(newEntry);
+                              setHistory(prev => [newEntry, ...prev]);
+                            }}
+                            collectionVariables={[
+                              ...(collections[0]?.variables || []),
+                              ...(globalVariables || []),
+                              ...(globalVariables || []).map(v => ({ ...v, key: `global.${v.key}` }))
+                            ]}
+                            settings={settings}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">
+                            Select a request to start
+                          </div>
+                        )}
+                      </Suspense>
+                    </div>
+                    <div className="h-80 overflow-auto">
+                      <Suspense fallback={<PanelSkeleton />}>
+                        <ResponsePanel response={response} loading={loading} />
+                      </Suspense>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Empty State - No tabs open */
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-48 h-48 rounded-full bg-muted/30 flex items-center justify-center mb-8">
+                    <svg className="w-24 h-24 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M12 20l9-5-9-5-9 5 9 5z" />
+                      <path d="M12 12l9-5-9-5-9 5 9 5z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-semibold text-foreground mb-2">No requests open</h2>
+                  <p className="text-muted-foreground mb-6">Create a new request to get started</p>
+                  <Button
+                    onClick={() => handleAddTab()}
+                    className="gap-2"
+                    size="lg"
+                  >
+                    <Plus className="w-5 h-5" />
+                    New Request
+                  </Button>
                 </div>
-                <div className="h-80 overflow-auto">
-                  <Suspense fallback={<PanelSkeleton />}>
-                    <ResponsePanel response={response} loading={loading} />
-                  </Suspense>
-                </div>
-              </div>
+              )}
             </>
           )}
         </div>
       </div>
+      <SaveRequestDialog
+        open={saveDialogState.open}
+        onOpenChange={(open) => setSaveDialogState(prev => ({ ...prev, open }))}
+        collections={collections}
+        onSave={handleDialogSave}
+        initialName={saveDialogState.requestName}
+      />
     </div>
   );
 }

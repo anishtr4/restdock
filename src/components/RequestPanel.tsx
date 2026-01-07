@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Send, Save, Loader2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { RequestMethod, RequestData } from "../App";
+import { RequestMethod, RequestData } from "@/types";
 import KeyValueEditor from "./KeyValueEditor";
 import AuthorizationPanel from "./AuthorizationPanel";
 import BodyEditor from "./BodyEditor";
@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-import { AppSettings } from "./SettingsView";
+import { AppSettings } from "@/types";
 
 interface RequestPanelProps {
     request: RequestData;
@@ -110,13 +110,50 @@ const RequestPanel = ({
             }
 
             // 3. Prepare Body
-            const finalBody = request.body ? substituteVariables(request.body) : undefined;
+            let finalBody: any = undefined;
+            if (request.body) {
+                if (typeof request.body === 'string') {
+                    finalBody = substituteVariables(request.body);
+                } else {
+                    finalBody = { ...request.body };
+                    if (finalBody.type === 'json' && finalBody.json) {
+                        finalBody.json = substituteVariables(finalBody.json);
+                    } else if (finalBody.type === 'raw' && finalBody.raw) {
+                        finalBody.raw = substituteVariables(finalBody.raw);
+                    } else if (finalBody.type === 'formdata' && finalBody.formdata) {
+                        finalBody.formdata = finalBody.formdata.map((f: any) => ({
+                            ...f,
+                            key: substituteVariables(f.key),
+                            value: substituteVariables(f.value),
+                            type: f.type
+                        }));
+                    } else if (finalBody.type === 'x-www-form-urlencoded' && finalBody.urlencoded) {
+                        finalBody.urlencoded = finalBody.urlencoded.map((f: any) => ({
+                            ...f,
+                            key: substituteVariables(f.key),
+                            value: substituteVariables(f.value)
+                        }));
+                    } else if (finalBody.type === 'binary' && finalBody.binary) {
+                        finalBody.binary = substituteVariables(finalBody.binary);
+                    }
+                }
+            }
+
+            // Serialize body to string if it's an object (Rust expects string)
+            let bodyString: string | undefined = undefined;
+            if (finalBody) {
+                if (typeof finalBody === 'string') {
+                    bodyString = finalBody;
+                } else {
+                    bodyString = JSON.stringify(finalBody);
+                }
+            }
 
             const res = await invoke("make_request", {
                 method: request.method,
                 url: finalUrl,
                 headers: headersMap,
-                body: finalBody,
+                body: bodyString,
                 timeout: settings?.requestTimeout,
                 follow_redirects: settings?.followRedirects
             });
@@ -204,21 +241,38 @@ const RequestPanel = ({
     const updateMethod = (method: RequestMethod) => setRequest({ ...request, method });
 
     // Helper to adapt string body to BodyData
+    // Helper to adapt string body to BodyData
     const getBodyData = (): any => {
         if (!request.body) return { type: 'none' };
-        try {
-            JSON.parse(request.body);
-            return { type: 'json', json: request.body };
-        } catch {
-            return { type: 'raw', raw: request.body };
+
+        // If body is already an object with type, return it directly
+        if (typeof request.body === 'object' && request.body.type) {
+            return request.body;
         }
+
+        if (typeof request.body === 'string') {
+            try {
+                const parsed = JSON.parse(request.body);
+
+                // Check if this is a structured body object with a type field
+                if (parsed && typeof parsed === 'object' && parsed.type) {
+                    // It's a stored body with type info (binary, formdata, urlencoded, etc.)
+                    return parsed;
+                }
+
+                // Otherwise it's plain JSON content
+                return { type: 'json', json: request.body };
+            } catch {
+                // Not valid JSON, treat as raw text
+                return { type: 'raw', raw: request.body };
+            }
+        }
+
+        return request.body;
     };
 
     const handleBodyChange = (bodyData: any) => {
-        let newBodyStr = '';
-        if (bodyData.type === 'json') newBodyStr = bodyData.json || '';
-        else if (bodyData.type === 'raw') newBodyStr = bodyData.raw || '';
-        setRequest({ ...request, body: newBodyStr });
+        setRequest({ ...request, body: bodyData });
     };
 
     const getMethodColor = (method: string) => {

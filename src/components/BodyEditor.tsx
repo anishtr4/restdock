@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import KeyValueEditor from "./KeyValueEditor";
+import { open } from '@tauri-apps/plugin-dialog';
+import { Button } from "@/components/ui/button";
 
 interface BodyData {
-    type: 'none' | 'json' | 'raw' | 'formdata';
+    type: 'none' | 'json' | 'raw' | 'formdata' | 'x-www-form-urlencoded' | 'binary';
     json?: string;
     raw?: string;
     formdata?: { key: string; value: string; enabled: boolean }[];
+    urlencoded?: { key: string; value: string; enabled: boolean }[];
+    binary?: string;
 }
 
 interface BodyEditorProps {
@@ -38,6 +44,10 @@ const BodyEditor = ({
             newBody.raw = '';
         } else if (type === 'formdata') {
             newBody.formdata = [{ key: '', value: '', enabled: true }];
+        } else if (type === 'x-www-form-urlencoded') {
+            newBody.urlencoded = [{ key: '', value: '', enabled: true }];
+        } else if (type === 'binary') {
+            newBody.binary = '';
         }
 
         onChange?.(newBody);
@@ -97,22 +107,45 @@ const BodyEditor = ({
         }, 0);
     };
 
+    const handleFilePick = async (onPick: (path: string) => void) => {
+        try {
+            const selected = await open({
+                multiple: false,
+                directory: false,
+            });
+            if (selected && typeof selected === 'string') {
+                onPick(selected);
+            }
+        } catch (err) {
+            console.error("Failed to open file dialog:", err);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full gap-4">
             {/* Body Type Selector */}
-            <div className="flex items-center gap-4">
-                <Select value={currentBody.type} onValueChange={(value) => handleTypeChange(value as BodyData['type'])}>
-                    <SelectTrigger className="w-[150px] h-8 text-xs font-medium bg-background">
-                        <SelectValue placeholder="Select body type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">No Body</SelectItem>
-                        <SelectItem value="json">JSON</SelectItem>
-                        <SelectItem value="raw">Raw Text</SelectItem>
-                        <SelectItem value="formdata">Form Data</SelectItem>
-                    </SelectContent>
-                </Select>
-                {/* Optional: Add content type badge or helper text here if needed later */}
+            <div className="pb-2 overflow-x-auto no-scrollbar">
+                <RadioGroup
+                    value={currentBody.type}
+                    onValueChange={(value) => handleTypeChange(value as BodyData['type'])}
+                    className="flex flex-row items-center gap-6"
+                >
+                    {[
+                        { value: 'none', label: 'None' },
+                        { value: 'json', label: 'JSON' },
+                        { value: 'raw', label: 'Raw' },
+                        { value: 'formdata', label: 'Form Data' },
+                        { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
+                        { value: 'binary', label: 'Binary' },
+                    ].map((opt) => (
+                        <div key={opt.value} className="flex items-center space-x-2">
+                            <RadioGroupItem value={opt.value} id={`body-${opt.value}`} />
+                            <Label htmlFor={`body-${opt.value}`} className="cursor-pointer font-normal text-muted-foreground aria-checked:text-foreground aria-checked:font-medium">
+                                {opt.label}
+                            </Label>
+                        </div>
+                    ))}
+                </RadioGroup>
             </div>
 
             {/* Content Area */}
@@ -187,12 +220,63 @@ const BodyEditor = ({
                 <KeyValueEditor
                     items={currentBody.formdata?.map(i => ({ ...i, active: i.enabled, description: '' })) || []}
                     onChange={(items) => {
-                        const newFormdata = items.map(i => ({ key: i.key, value: i.value, enabled: i.active }));
+                        const newFormdata = items.map(i => ({ key: i.key, value: i.value, type: i.type, enabled: i.active }));
                         const newBody = { ...currentBody, formdata: newFormdata };
                         onChange?.(newBody);
                     }}
                     collectionVariables={collectionVariables}
+                    enableTypes={true} // Enable type selection (Text/File)
+                    onFileSelect={(index) => {
+                        handleFilePick((path) => {
+                            const items = currentBody.formdata ? [...currentBody.formdata] : [];
+                            if (items[index]) {
+                                items[index] = { ...items[index], value: path };
+                                const newBody = { ...currentBody, formdata: items };
+                                onChange?.(newBody);
+                            }
+                        });
+                    }}
                 />
+            )}
+
+            {currentBody.type === 'x-www-form-urlencoded' && (
+                <KeyValueEditor
+                    items={currentBody.urlencoded?.map(i => ({ ...i, active: i.enabled, description: '' })) || []}
+                    onChange={(items) => {
+                        const newUrlEncoded = items.map(i => ({ key: i.key, value: i.value, enabled: i.active }));
+                        const newBody = { ...currentBody, urlencoded: newUrlEncoded };
+                        onChange?.(newBody);
+                    }}
+                    collectionVariables={collectionVariables}
+                />
+            )}
+
+            {currentBody.type === 'binary' && (
+                <div className="flex flex-col gap-4 p-4 border rounded-md min-h-[200px] justify-center items-center bg-muted/10">
+                    <div className="w-full max-w-md space-y-2">
+                        <Label>File Path</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="/path/to/file"
+                                value={currentBody.binary || ''}
+                                onChange={(e) => {
+                                    const newBody = { ...currentBody, binary: e.target.value };
+                                    onChange?.(newBody);
+                                }}
+                                className="flex-1"
+                            />
+                            <Button variant="outline" onClick={() => handleFilePick((path) => {
+                                const newBody = { ...currentBody, binary: path };
+                                onChange?.(newBody);
+                            })}>
+                                Browse
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Enter the absolute path to the file you want to upload.
+                        </p>
+                    </div>
+                </div>
             )}
         </div>
     );

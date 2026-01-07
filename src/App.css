@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 220 18% 12%;
+    --foreground: 210 40% 98%;
+    --card: 220 18% 16%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 18% 14%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 15 90% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 15 35% 18%;
+    --secondary-foreground: 15 90% 95%;
+    --muted: 217 20% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 15 50% 20%;
+    --accent-foreground: 15 90% 95%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 217 10% 20%;
+    --input: 217 15% 18%;
+    --ring: 15 90% 50%;
   }
 }
 
@@ -78,6 +78,16 @@
   border-radius: 10px;
 }
 
+/* Hide scrollbar completely */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
@@ -90,15 +100,34 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 @keyframes pulsate {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
 }
 
 @keyframes fade-in-up {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-pulsate {
@@ -110,10 +139,125 @@
 }
 
 @keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Animated Background Pattern */
+@keyframes float-pattern {
+
+  0%,
+  100% {
+    background-position: 0% 0%, 100% 100%, 50% -10%, 100% 20%, 0% 50%;
+  }
+
+  25% {
+    background-position: 10% 5%, 90% 95%, 55% -5%, 95% 25%, 5% 55%;
+  }
+
+  50% {
+    background-position: 5% 10%, 95% 90%, 50% 0%, 100% 30%, 0% 60%;
+  }
+
+  75% {
+    background-position: -5% 5%, 105% 95%, 45% -5%, 105% 25%, -5% 55%;
+  }
+}
+
+.animated-bg {
+  animation: float-pattern 20s ease-in-out infinite;
+}
+
+/* Noise/grain overlay for texture */
+.noise-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Float animation for orbs */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(10px, -20px) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-5px, 10px) scale(0.95);
+  }
+
+  75% {
+    transform: translate(-15px, -10px) scale(1.02);
+  }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: hsl(var(--card) / 0.15) !important;
+  backdrop-filter: blur(40px) saturate(2);
+  -webkit-backdrop-filter: blur(40px) saturate(2);
+  border: 1px solid hsl(var(--foreground) / 0.05);
+}
+
+.glass-border {
+  border: 1px solid hsl(var(--primary) / 0.2);
+  box-shadow:
+    0 0 50px hsl(var(--primary) / 0.1),
+    0 4px 30px hsl(0 0% 0% / 0.2);
+}
+
+.dark .glass-panel {
+  background: hsl(var(--card) / 0.25) !important;
+  border-color: hsl(var(--foreground) / 0.08);
+}
+
+/* Keep proper backgrounds for usability - only make outer wrapper transparent */
+.dark .glass-panel>div:first-child {
+  background: transparent;
+}
+
+/* Tables and inputs need proper backgrounds */
+.dark .glass-panel table,
+.dark .glass-panel input,
+.dark .glass-panel textarea,
+.dark .glass-panel [role="table"],
+.dark .glass-panel [role="grid"] {
+  background-color: hsl(var(--background) / 0.5);
+}
+
+/* Table headers slightly visible */
+.dark .glass-panel thead,
+.dark .glass-panel th {
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+/* Subtle dividers */
+.dark .glass-panel .border-b,
+.dark .glass-panel .border-t {
+  border-color: hsl(var(--foreground) / 0.1) !important;
+}
+
+.dark .glass-border {
+  border-color: hsl(var(--primary) / 0.25);
+  box-shadow:
+    0 0 60px hsl(var(--primary) / 0.12),
+    0 8px 40px hsl(0 0% 0% / 0.3);
 }

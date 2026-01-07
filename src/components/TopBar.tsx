@@ -3,7 +3,7 @@ import { Search, Bell, Settings as SettingsIcon, ChevronRight } from "lucide-rea
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Collection, RequestData } from "../App";
+import { Collection, RequestData } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 

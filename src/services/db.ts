@@ -1,5 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
-import { Collection, RequestData, HistoryEntry } from '../App';
+import { Collection, RequestData, HistoryEntry } from '../types';
 
 class DatabaseService {
     db: Database | null = null;
@@ -485,6 +485,42 @@ class DatabaseService {
                     headers: JSON.stringify([{ key: 'Content-Type', value: 'application/json' }]),
                     params: JSON.stringify([{ key: 'trace', value: 'true', enabled: true }]),
                     body: ''
+                },
+                // 13. Form Data Upload (multipart/form-data)
+                {
+                    id: 'req-upload', name: 'File Upload (Form)', method: 'POST',
+                    url: '{{base_url}}/api/upload',
+                    headers: '[]',
+                    params: '[]',
+                    body: JSON.stringify({
+                        type: 'formdata',
+                        formdata: [
+                            { key: 'file', value: '', type: 'file', enabled: true },
+                            { key: 'description', value: 'Sample file upload', type: 'text', enabled: true }
+                        ]
+                    })
+                },
+                // 14. Form Submit (application/x-www-form-urlencoded)
+                {
+                    id: 'req-submit', name: 'Form Submit (URL Encoded)', method: 'POST',
+                    url: '{{base_url}}/api/submit',
+                    headers: JSON.stringify([{ key: 'Content-Type', value: 'application/x-www-form-urlencoded' }]),
+                    params: '[]',
+                    body: JSON.stringify({
+                        type: 'urlencoded',
+                        urlencoded: [
+                            { key: 'username', value: 'testuser', enabled: true },
+                            { key: 'email', value: 'test@example.com', enabled: true }
+                        ]
+                    })
+                },
+                // 15. Binary Upload (application/octet-stream)
+                {
+                    id: 'req-binary', name: 'Binary Upload', method: 'PUT',
+                    url: '{{base_url}}/api/binary',
+                    headers: '[]',
+                    params: '[]',
+                    body: JSON.stringify({ type: 'binary', binary: '' })
                 }
             ];
 

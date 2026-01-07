@@ -11,11 +11,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface KeyValue {
     key: string;
     value: string;
     active: boolean;
+    type?: 'text' | 'file';
     description?: string;
 }
 
@@ -23,6 +25,8 @@ interface KeyValueEditorProps {
     items?: KeyValue[];
     onChange?: (items: KeyValue[]) => void;
     collectionVariables?: { key: string; value: string; enabled: boolean }[];
+    enableTypes?: boolean;
+    onFileSelect?: (index: number) => void;
 }
 
 const DEFAULT_ITEMS: KeyValue[] = [{ key: '', value: '', active: true }];
@@ -30,7 +34,9 @@ const DEFAULT_ITEMS: KeyValue[] = [{ key: '', value: '', active: true }];
 const KeyValueEditor = ({
     items = DEFAULT_ITEMS,
     onChange,
-    collectionVariables = []
+    collectionVariables = [],
+    enableTypes = false,
+    onFileSelect
 }: KeyValueEditorProps) => {
     const currentItems = items.length > 0 ? items : DEFAULT_ITEMS;
 
@@ -98,6 +104,9 @@ const KeyValueEditor = ({
                             <div className="flex items-center justify-center h-full text-[10px]">#</div>
                         </TableHead>
                         <TableHead className="w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Key</TableHead>
+                        {enableTypes && (
+                            <TableHead className="w-[15%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Type</TableHead>
+                        )}
                         <TableHead className="w-[35%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Value</TableHead>
                         <TableHead className="w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
                         <TableHead className="w-[42px] px-0 text-center">
@@ -133,13 +142,49 @@ const KeyValueEditor = ({
                                     className="h-9 w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm font-medium transition-all placeholder:text-muted-foreground/40"
                                 />
                             </TableCell>
+                            {enableTypes && (
+                                <TableCell className="p-0 align-middle">
+                                    <Select
+                                        value={item.type || 'text'}
+                                        onValueChange={(val) => handleUpdate(index, 'type', val as any)}
+                                    >
+                                        <SelectTrigger className="h-9 w-full bg-transparent border-none focus:ring-0 focus:ring-offset-0 rounded-none px-3 text-xs font-medium text-muted-foreground shadow-none">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="text">Text</SelectItem>
+                                            <SelectItem value="file">File</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableCell>
+                            )}
                             <TableCell className="p-0 align-middle relative">
-                                <Input
-                                    placeholder="Value"
-                                    value={item.value}
-                                    onChange={(e) => handleUpdate(index, 'value', e.target.value)}
-                                    className="h-9 w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm transition-all placeholder:text-muted-foreground/40"
-                                />
+
+                                {item.type === 'file' ? (
+                                    <div className="flex h-9 w-full items-center px-1">
+                                        <Input
+                                            placeholder="Select file..."
+                                            value={item.value}
+                                            readOnly
+                                            className="h-7 flex-1 bg-muted/20 border-transparent text-xs px-2 shadow-none focus-visible:ring-0"
+                                        />
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => onFileSelect?.(index)}
+                                            className="h-7 ml-1 px-2 text-xs"
+                                        >
+                                            Browse
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <Input
+                                        placeholder="Value"
+                                        value={item.value}
+                                        onChange={(e) => handleUpdate(index, 'value', e.target.value)}
+                                        className="h-9 w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm transition-all placeholder:text-muted-foreground/40"
+                                    />
+                                )}
                                 {autocomplete && autocomplete.show && autocomplete.rowIndex === index && (
                                     <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
                                         <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter bg-muted/30 border-b">Variables</div>

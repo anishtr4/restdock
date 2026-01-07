@@ -109,6 +109,39 @@ export default function MockServerView({ logs, setLogs }: MockServerViewProps) {
             response_body: '{"message": "Hello from Mock Server!"}',
             response_headers: [{ Key: 'Content-Type', Value: 'application/json' }],
             enabled: true
+        },
+        {
+            id: 'default-route-2',
+            server_id: 'default-server',
+            method: 'POST',
+            path: '/api/upload',
+            status_code: 201,
+            delay_ms: 500,
+            response_body: '{"message": "File uploaded successfully", "file_id": "12345"}',
+            response_headers: [{ Key: 'Content-Type', Value: 'application/json' }],
+            enabled: true
+        },
+        {
+            id: 'default-route-3',
+            server_id: 'default-server',
+            method: 'POST',
+            path: '/api/submit',
+            status_code: 200,
+            delay_ms: 200,
+            response_body: '{"message": "Form submitted", "status": "ok"}',
+            response_headers: [{ Key: 'Content-Type', Value: 'application/json' }],
+            enabled: true
+        },
+        {
+            id: 'default-route-4',
+            server_id: 'default-server',
+            method: 'PUT',
+            path: '/api/binary',
+            status_code: 200,
+            delay_ms: 1000,
+            response_body: '{"message": "Binary data received", "size": "1024 bytes"}',
+            response_headers: [{ Key: 'Content-Type', Value: 'application/json' }],
+            enabled: true
         }
     ];
 
@@ -118,12 +151,26 @@ export default function MockServerView({ logs, setLogs }: MockServerViewProps) {
             if (s && s.length > 0) {
                 setServers(s);
                 if (!selectedServer) setSelectedServer(s[0]);
+
+                // For existing users with default-server, ensure new routes are added
+                const defaultServer = s.find(srv => srv.id === 'default-server');
+                if (defaultServer) {
+                    const currentRoutes = await dbService.getMocksByServer('default-server');
+                    for (const defRoute of DEFAULT_ROUTES) {
+                        if (!currentRoutes.some(r => r.path === defRoute.path && r.method === defRoute.method)) {
+                            console.log(`Seeding missing default route: ${defRoute.method} ${defRoute.path}`);
+                            await dbService.saveMock(defRoute);
+                        }
+                    }
+                }
             } else {
                 // Create default server for first-time users
                 console.log("No servers found, creating default server");
                 await dbService.saveMockServer(DEFAULT_SERVER);
-                // Save default route too
-                await dbService.saveMock(DEFAULT_ROUTES[0]);
+                // Save default routes
+                for (const route of DEFAULT_ROUTES) {
+                    await dbService.saveMock(route);
+                }
                 setServers([DEFAULT_SERVER]);
                 setSelectedServer(DEFAULT_SERVER);
             }
