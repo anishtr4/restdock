@@ -5,12 +5,12 @@ const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || 'artifacts';
 const VERSION = process.env.VERSION || '1.0.0'; // Should be passed from workflow
 const PUBLISH_DATE = new Date().toISOString();
 
-// Platform mapping: Tauri target -> Updater platform key
+// Platform mapping: Updater platform key -> folder pattern and extension
 const PLATFORMS = {
-    'darwin-aarch64': { ext: '.dmg', target: 'aarch64-apple-darwin' },
-    'darwin-x86_64': { ext: '.dmg', target: 'x86_64-apple-darwin' },
-    'linux-x86_64': { ext: '.AppImage', target: 'x86_64-unknown-linux-gnu' },
-    'windows-x86_64': { ext: '.exe', target: 'x86_64-pc-windows-msvc' } // Or .msi, depending on preference
+    'darwin-aarch64': { ext: '.dmg', folder: 'macOS-arm64' },
+    'darwin-x86_64': { ext: '.dmg', folder: 'macOS-x64' },
+    'linux-x86_64': { ext: '.AppImage', folder: 'Linux-x64' },
+    'windows-x86_64': { ext: '.exe', folder: 'Windows-x64' }
 };
 
 // Base URL where assets are hosted (GitHub Releases)
@@ -100,10 +100,10 @@ walk(ARTIFACTS_DIR);
 
 for (const [platformKey, config] of Object.entries(PLATFORMS)) {
     const ext = config.ext;
-    const target = config.target;
+    const folder = config.folder;
 
-    // Find file that has extension AND contains target string in path (Tauri output usually has target in path)
-    const match = files.find(f => f.endsWith(ext) && f.includes(target));
+    // Find file that has extension AND contains folder name in path
+    const match = files.find(f => f.endsWith(ext) && f.includes(folder));
 
     if (match) {
         const sig = getSignature(match);
