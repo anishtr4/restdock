@@ -65,50 +65,50 @@ export const THEMES: Theme[] = [
     },
     {
         id: 'rust',
-        name: 'Rust (Brand)',
+        name: 'Rustic (Oxide)',
         layout: 'bento',
-        description: 'Hyper-immersive Forge design.',
+        description: 'Deep crimson oxide, weathered and robust.',
         variables: {
-            '--primary': '24.6 95% 53.1%', // Super bright orange
-            '--primary-foreground': '60 9.1% 97.8%',
-            '--ring': '24.6 95% 53.1%',
+            '--primary': '0 72% 51%', // Deep Crimson Red
+            '--primary-foreground': '0 0% 98%',
+            '--ring': '0 72% 51%',
             '--radius': '0.75rem',
         },
         lightVariables: {
-            // "Forge Day": Soft warm orange glow
-            '--app-bg': 'radial-gradient(circle at 50% -20%, #ffedd5 0%, #fff7ed 40%, rgba(255,255,255,0) 100%)',
+            // "Oxide Day": Soft warm rose/clay glow
+            '--app-bg': 'radial-gradient(circle at 50% -20%, #ffe4e6 0%, #fff1f2 40%, rgba(255,255,255,0) 100%)',
             // Light colors
             '--background': '0 0% 100%',
-            '--foreground': '20 14.3% 4.1%',
-            '--card': '0 0% 100%', // Use full white or slightly tinted? Full white for clean look.
-            '--card-foreground': '20 14.3% 4.1%',
+            '--foreground': '0 0% 3.9%',
+            '--card': '0 0% 100%',
+            '--card-foreground': '0 0% 3.9%',
             '--popover': '0 0% 100%',
-            '--popover-foreground': '20 14.3% 4.1%',
-            '--muted': '24 5.7% 92.9%', // Light warm gray
-            '--muted-foreground': '24 5.4% 53.9%',
-            '--border': '20 5.9% 90%',
-            '--input': '20 5.9% 90%',
+            '--popover-foreground': '0 0% 3.9%',
+            '--muted': '0 5% 96%', // Very light warm gray
+            '--muted-foreground': '0 5% 45%',
+            '--border': '0 5% 90%',
+            '--input': '0 5% 90%',
         },
         darkVariables: {
-            // "Forge Night": Molten
-            '--app-bg': 'radial-gradient(circle at 50% -20%, #ff6b35 0%, #c2410c 25%, #431407 50%, #0c0a09 100%)',
-            // Dark colors (Original overrides)
-            '--background': '20 14% 4%',
-            '--foreground': '35 25% 96%',
-            '--card': '20 14% 8%',
-            '--card-foreground': '35 25% 96%',
-            '--popover': '20 14% 6%',
-            '--popover-foreground': '35 25% 96%',
-            '--secondary': '14 30% 12%',
-            '--secondary-foreground': '35 25% 96%',
-            '--muted': '14 30% 12%',
-            '--muted-foreground': '24 10% 70%',
-            '--accent': '14 40% 20%',
-            '--accent-foreground': '35 25% 96%',
+            // "Oxide Night": Deep Crimson / Blood Moon
+            '--app-bg': 'radial-gradient(circle at 50% -20%, #9f1239 0%, #881337 25%, #4c0519 50%, #0c0a09 100%)',
+            // Dark colors
+            '--background': '0 0% 4%',
+            '--foreground': '0 10% 98%',
+            '--card': '0 0% 6%',
+            '--card-foreground': '0 10% 98%',
+            '--popover': '0 0% 5%',
+            '--popover-foreground': '0 10% 98%',
+            '--secondary': '0 30% 12%',
+            '--secondary-foreground': '0 0% 98%',
+            '--muted': '0 30% 12%',
+            '--muted-foreground': '0 10% 70%',
+            '--accent': '0 40% 20%',
+            '--accent-foreground': '0 0% 98%',
             '--destructive': '0 62.8% 30.6%',
-            '--destructive-foreground': '35 25% 96%',
-            '--border': '20.6 30% 30%',
-            '--input': '20 20% 15%',
+            '--destructive-foreground': '0 0% 98%',
+            '--border': '0 30% 20%',
+            '--input': '0 30% 15%',
         }
     },
     {

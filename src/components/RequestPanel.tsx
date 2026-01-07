@@ -158,8 +158,10 @@ const RequestPanel = ({
                 const extraChars = matchAfter ? matchAfter[0] : "";
 
                 // Check if closing brackets exist immediately after the variable name
-                const hasClosing = afterCursor.substring(extraChars.length).startsWith('}}');
-                const closingOffset = hasClosing ? 2 : 0;
+                const remainder = afterCursor.substring(extraChars.length);
+                let closingOffset = 0;
+                if (remainder.startsWith('}}')) closingOffset = 2;
+                else if (remainder.startsWith('}')) closingOffset = 1;
 
                 const suggestions = collectionVariables.filter(v =>
                     v.enabled && v.key.toLowerCase().includes(searchTerm.toLowerCase())

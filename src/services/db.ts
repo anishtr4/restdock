@@ -603,7 +603,7 @@ class DatabaseService {
 
     async getGlobalVariables(): Promise<{ key: string; value: string; enabled: boolean }[]> {
         if (!this.db) throw new Error("DB not initialized");
-        const vars = await this.db.select<any[]>('SELECT * FROM variables WHERE collection_id = ?', ['global']);
+        const vars = await this.db.select<any[]>('SELECT * FROM global_variables');
         return vars.map(v => ({ key: v.key, value: v.value, enabled: !!v.enabled }));
     }
 
@@ -611,12 +611,12 @@ class DatabaseService {
         if (!this.db) throw new Error("DB not initialized");
 
         // Transaction-like replacement
-        await this.db.execute('DELETE FROM variables WHERE collection_id = ?', ['global']);
+        await this.db.execute('DELETE FROM global_variables');
 
         for (const v of variables) {
             await this.db.execute(
-                'INSERT INTO variables (collection_id, key, value, enabled) VALUES (?, ?, ?, ?)',
-                ['global', v.key, v.value, v.enabled]
+                'INSERT INTO global_variables (key, value, enabled) VALUES (?, ?, ?)',
+                [v.key, v.value, v.enabled]
             );
         }
     }

@@ -9,19 +9,15 @@ import { TopBar } from "./components/TopBar";
 import { THEMES, ALL_THEME_KEYS } from "@/lib/themes";
 import { listen } from "@tauri-apps/api/event";
 
+import { LoadingFallback } from "./components/LoadingFallback";
+import { PanelSkeleton } from "./components/PanelSkeleton";
+
 // Lazy load heavy components
 const RequestPanel = lazy(() => import("./components/RequestPanel"));
 const ResponsePanel = lazy(() => import("./components/ResponsePanel"));
 const SettingsView = lazy(() => import("./components/SettingsView"));
 const MockServerView = lazy(() => import("./components/MockServerView"));
 const Explorer = lazy(() => import("./components/Explorer"));
-
-// Loading fallback for lazy components
-const PanelLoader = () => (
-  <div className="flex-1 flex items-center justify-center">
-    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
 
 // Import types
 import type { AppSettings } from "./components/SettingsView";
@@ -163,9 +159,12 @@ function App() {
     localStorage.setItem('app-settings', JSON.stringify(settings));
   }, [settings]);
 
+  const [isAppReady, setIsAppReady] = useState(false);
+
   // Initialize DB
   useEffect(() => {
     const initDb = async () => {
+      // ... (keep existing init logic)
       try {
         await dbService.init();
         const cols = await dbService.getCollections();
@@ -195,12 +194,20 @@ function App() {
         setHistory(hist);
         setGlobalVariables(globalVars);
 
+        // Small delay to ensure minimal splash time and smoother transition
+        setTimeout(() => setIsAppReady(true), 500);
+
       } catch (e) {
         console.error("Failed to init DB:", e);
+        setIsAppReady(true); // Proceed anyway to show UI (maybe error state)
       }
     };
     initDb();
   }, []);
+
+
+
+
 
   // Initialize active request for the first tab
   useEffect(() => {
@@ -596,12 +603,18 @@ function App() {
 
 
 
+
   const activeTheme = THEMES.find(t => t.id === settings.themeId) || THEMES[0];
   const isBento = activeTheme.layout === 'bento';
 
+  if (!isAppReady) {
+    return <LoadingFallback />;
+  }
+
+
   return (
     <div
-      className={`h-screen w-full flex flex-col overflow-hidden bg-background text-foreground transition-all duration-300 ${isBento ? 'p-3 gap-3' : 'border border-border'}`}
+      className={`h-screen w-full flex flex-col overflow-hidden bg-background text-foreground animate-fade-in transition-all duration-300 ${isBento ? 'p-3 gap-3' : 'border border-border'}`}
       style={{
         backgroundImage: activeTheme.variables['--app-bg'] || 'none',
         backgroundSize: 'cover',
@@ -661,7 +674,7 @@ function App() {
             style={!isBento ? { backgroundColor: 'var(--sidebar-bg, var(--background))', color: 'var(--sidebar-fg, var(--foreground))' } : {}}
           >
             {activeView === "collections" ? (
-              <Suspense fallback={<PanelLoader />}>
+              <Suspense fallback={<PanelSkeleton />}>
                 <Explorer
                   collections={collections}
                   expandedCollections={expandedCollections}
@@ -725,7 +738,7 @@ function App() {
         >
           {activeView === "settings" && (
             <div className="flex-1 overflow-auto">
-              <Suspense fallback={<PanelLoader />}>
+              <Suspense fallback={<PanelSkeleton />}>
                 <SettingsView
                   globalVariables={globalVariables}
                   onGlobalVariablesChange={handleSaveGlobalVariables}
@@ -738,7 +751,7 @@ function App() {
 
           {activeView === "mock_server" && (
             <div className="flex-1 overflow-auto">
-              <Suspense fallback={<PanelLoader />}>
+              <Suspense fallback={<PanelSkeleton />}>
                 <MockServerView
                   logs={mockLogs}
                   setLogs={setMockLogs}
@@ -761,7 +774,7 @@ function App() {
               {/* Request/Response Area */}
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex-1 border-b overflow-hidden flex flex-col">
-                  <Suspense fallback={<PanelLoader />}>
+                  <Suspense fallback={<PanelSkeleton />}>
                     {activeRequest ? (
                       <RequestPanel
                         request={activeRequest}
@@ -786,7 +799,11 @@ function App() {
                           await dbService.addToHistory(newEntry);
                           setHistory(prev => [newEntry, ...prev]);
                         }}
-                        collectionVariables={collections[0]?.variables || []}
+                        collectionVariables={[
+                          ...(collections[0]?.variables || []),
+                          ...(globalVariables || []),
+                          ...(globalVariables || []).map(v => ({ ...v, key: `global.${v.key}` }))
+                        ]}
                         settings={settings}
                       />
                     ) : (
@@ -797,7 +814,7 @@ function App() {
                   </Suspense>
                 </div>
                 <div className="h-80 overflow-auto">
-                  <Suspense fallback={<PanelLoader />}>
+                  <Suspense fallback={<PanelSkeleton />}>
                     <ResponsePanel response={response} loading={loading} />
                   </Suspense>
                 </div>

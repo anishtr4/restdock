@@ -73,7 +73,7 @@ export const ScrollableTabs = ({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 absolute left-0 z-10 bg-background/80 backdrop-blur-sm border-r rounded-none"
+                    className="h-8 w-8 absolute left-0 z-20 bg-background/95 backdrop-blur-sm border-r rounded-none shadow-[5px_0_10px_-5px_rgba(0,0,0,0.1)]"
                     onClick={() => scroll('left')}
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -133,23 +133,23 @@ export const ScrollableTabs = ({
                 )}
             </div>
 
-            <div className="flex items-center bg-background">
+            <div className="flex items-center bg-background relative z-10 box-border pl-1 shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.1)] clip-padding">
                 {showRightScroll && (
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 bg-background border-l rounded-none"
+                        className="h-8 w-8 bg-background border-l rounded-none hover:bg-muted"
                         onClick={() => scroll('right')}
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 )}
                 {isOverflowing && (
-                    <div className="pl-1 bg-background border-l">
+                    <div className=" bg-background border-l">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 flex-shrink-0"
+                            className="h-8 w-8 flex-shrink-0 hover:bg-muted"
                             onClick={onTabAdd}
                         >
                             <Plus className="h-4 w-4" />

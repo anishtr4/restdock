@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings as SettingsIcon, Cpu, ChevronRight } from "lucide-react";
+import { Search, Bell, Settings as SettingsIcon, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,10 +101,8 @@ export function TopBar({ onSettingsClick, collections, onSelectRequest, isBento 
         <div className={cn("h-12 flex items-center px-4 justify-between select-none z-50 relative", !isBento && "border-b bg-background")}>
             {/* Left Section: Logo */}
             <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-[#d97706] rounded flex items-center justify-center shadow-[0_0_10px_rgba(217,119,6,0.2)]">
-                    <Cpu className="w-4 h-4 text-white fill-current" />
-                </div>
-                <span className="font-bold text-sm tracking-tight text-primary">RestDock</span>
+                <img src="/logo.png" alt="Logo" className="w-7 h-7 rounded-[7px] shadow-sm" />
+                <span className="font-semibold text-[15px] tracking-tight text-foreground/90">RestDock</span>
             </div>
 
             {/* Center Section: Search Bar */}

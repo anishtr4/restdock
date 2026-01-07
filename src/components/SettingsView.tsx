@@ -83,7 +83,7 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                         <div>
                             <h3 className="text-lg font-semibold">Global Variables</h3>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Variables defined here are accessible in all collections using <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{global.variableName}}`}</code>.
+                                Variables defined here are accessible in all collections using <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{variableName}}`}</code>.
                             </p>
                         </div>
                         <KeyValueEditor
