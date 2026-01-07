@@ -30,11 +30,7 @@ jobs:
       - name: Check if should release
         id: check
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          fi
+          echo "should_release=true" >> $GITHUB_OUTPUT
 
       - name: Get version
         id: version
@@ -56,14 +52,12 @@ jobs:
             const version = '${{ steps.version.outputs.version }}';
             const isTag = '${{ github.ref }}'.startsWith('refs/tags/');
             
-            // Check if release already exists
             try {
               const { data: existing } = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 tag: version
               });
-              // Delete existing draft release
               if (existing.draft) {
                 await github.rest.repos.deleteRelease({
                   owner: context.repo.owner,
@@ -73,16 +67,14 @@ jobs:
               } else {
                 return existing.id;
               }
-            } catch (e) {
-              // Release doesn't exist, continue
-            }
+            } catch (e) {}
             
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: version,
               name: `RestDock ${version}`,
-              body: 'Download the appropriate installer for your platform below.',
+              body: 'Download the appropriate installer for your platform below.\n\n## Platforms\n- **macOS**: `.dmg` (Apple Silicon & Intel)\n- **Windows**: `.msi` / `.exe`\n- **Linux**: `.deb` / `.AppImage` (x64 & ARM64)',
               draft: true,
               prerelease: !isTag
             });
@@ -95,18 +87,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
             name: 'macos-arm64'
           - platform: 'macos-latest'
             args: '--target x86_64-apple-darwin'
             name: 'macos-x64'
+          # Linux x64
           - platform: 'ubuntu-22.04'
             args: ''
-            name: 'linux'
+            name: 'linux-x64'
+          # Linux ARM64 (cross-compile)
+          - platform: 'ubuntu-22.04'
+            args: '--target aarch64-unknown-linux-gnu'
+            name: 'linux-arm64'
+            cross: true
+          # Windows
           - platform: 'windows-latest'
             args: ''
-            name: 'windows'
+            name: 'windows-x64'
 
     runs-on: ${{ matrix.platform }}
     
@@ -120,6 +120,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
+      - name: Install ARM64 cross-compilation tools
+        if: matrix.cross == true
+        run: |
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo dpkg --add-architecture arm64
+          sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          sudo apt-get update || true
+          sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64 || true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -128,7 +139,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || (matrix.cross && 'aarch64-unknown-linux-gnu' || '') }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -137,6 +148,13 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Set cross-compilation env
+        if: matrix.cross == true
+        run: |
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Build and upload Tauri app
         uses: tauri-apps/tauri-action@v0
