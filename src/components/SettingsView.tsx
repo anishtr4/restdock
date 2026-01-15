@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import KeyValueEditor from "./KeyValueEditor";
 import { Globe, Palette, Monitor, Database, Download, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -266,6 +266,24 @@ const SettingsView = ({
                                     <span id="update-status" className="text-sm font-medium"></span>
                                 </div>
                             </div>
+
+                            <div className="grid gap-2 pt-4 border-t">
+                                <Label>About</Label>
+                                <div className="grid gap-4 p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col gap-1">
+                                            <h4 className="font-semibold">RestDock</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                A modern, fast REST API client built with Tauri
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-mono font-medium">v1.1.1</p>
+                                            <p className="text-xs text-muted-foreground">Version</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -349,7 +367,7 @@ const SettingsView = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 
