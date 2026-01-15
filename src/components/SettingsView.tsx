@@ -275,7 +275,7 @@ const SettingsView = ({
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-mono font-medium">v1.1.2</p>
+                                            <p className="text-sm font-mono font-medium">v1.1.3</p>
                                             <p className="text-xs text-muted-foreground">Version</p>
                                         </div>
                                     </div>
