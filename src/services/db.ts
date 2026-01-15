@@ -1,5 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
-import { Collection, RequestData, HistoryEntry } from '../types';
+import { Collection, Environment, RequestData, HistoryEntry } from '../types';
 
 class DatabaseService {
     db: Database | null = null;
@@ -44,7 +44,8 @@ class DatabaseService {
           type TEXT NOT NULL,
           parent_id TEXT,
           variables TEXT,
-          created_at INTEGER
+          created_at INTEGER,
+          description TEXT
         );
       `);
 
@@ -73,6 +74,7 @@ class DatabaseService {
           parent_id TEXT,
           type TEXT,
           created_at INTEGER,
+          description TEXT,
           FOREIGN KEY(collection_id) REFERENCES collections(id) ON DELETE CASCADE
         );
       `);
@@ -144,12 +146,44 @@ class DatabaseService {
         // Add new columns to 'history' (for existing databases)
         try { await this.db.execute(`ALTER TABLE history ADD COLUMN duration INTEGER`); } catch (e) { }
 
+        // Add description column
+        try { await this.db.execute(`ALTER TABLE collections ADD COLUMN description TEXT`); } catch (e) { }
+        try { await this.db.execute(`ALTER TABLE requests ADD COLUMN description TEXT`); } catch (e) { }
+        try { await this.db.execute(`ALTER TABLE requests ADD COLUMN pre_request_script TEXT`); } catch (e) { }
+        try { await this.db.execute(`ALTER TABLE requests ADD COLUMN test_script TEXT`); } catch (e) { }
+
+        // Environments Table
+        await this.db.execute(`
+        CREATE TABLE IF NOT EXISTS environments (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          variables TEXT,
+          is_active BOOLEAN NOT NULL DEFAULT 0,
+          created_at INTEGER
+        );
+      `);
+
+        await this.db.execute(`
+        CREATE TABLE IF NOT EXISTS saved_responses (
+            id TEXT PRIMARY KEY,
+            request_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            status TEXT,
+            code INTEGER,
+            headers TEXT, -- JSON string
+            body TEXT, -- JSON or Text
+            created_at INTEGER,
+            FOREIGN KEY(request_id) REFERENCES requests(id) ON DELETE CASCADE
+        );
+      `);
+
         // RESET STATE: Ensure no servers are marked as running on startup (since backend processes are gone)
         await this.db.execute(`UPDATE mock_servers SET status = 'stopped'`);
 
         // Seed Data Check - Only create default server if completely empty
         const servers: any[] = await this.db.select('SELECT * FROM mock_servers');
         if (servers.length === 0) {
+            console.log("Creating default server...");
             // Create single Default Server for first-time users
             const defaultServerId = 'default-server';
             await this.db.execute(
@@ -321,6 +355,74 @@ class DatabaseService {
                     request_body_schema: null,
                     conditions: null
                 },
+
+                // Advanced Authentication Endpoints
+                {
+                    id: 'route-auth-digest', method: 'GET', path: '/auth/digest-protected', status_code: 200, delay_ms: 50,
+                    response_body: JSON.stringify({ message: "Access granted via Digest Auth", user: "admin", realm: "Protected Area" }, null, 2),
+                    auth_type: 'digest',
+                    auth_config: JSON.stringify({
+                        username: 'admin',
+                        password: 'secret123',
+                        realm: 'Protected Area',
+                        nonce: 'dcd98b7102dd2f0e8b11d0f600bfb0c093',
+                        algorithm: 'MD5',
+                        qop: 'auth'
+                    }),
+                    request_params: null,
+                    request_body_schema: null,
+                    conditions: null
+                },
+                {
+                    id: 'route-auth-oauth1', method: 'GET', path: '/auth/oauth1-protected', status_code: 200, delay_ms: 50,
+                    response_body: JSON.stringify({ message: "Access granted via OAuth 1.0", user: "oauth_user", oauth_version: "1.0" }, null, 2),
+                    auth_type: 'oauth1',
+                    auth_config: JSON.stringify({
+                        consumer_key: 'demo-consumer-key',
+                        consumer_secret: 'demo-consumer-secret',
+                        token: 'demo-access-token',
+                        token_secret: 'demo-token-secret'
+                    }),
+                    request_params: null,
+                    request_body_schema: null,
+                    conditions: null
+                },
+                {
+                    id: 'route-auth-aws', method: 'GET', path: '/auth/aws-protected', status_code: 200, delay_ms: 75,
+                    response_body: JSON.stringify({ message: "Access granted via AWS Signature", region: "us-east-1", service: "execute-api" }, null, 2),
+                    auth_type: 'aws',
+                    auth_config: JSON.stringify({
+                        access_key: 'AKIAIOSFODNN7EXAMPLE',
+                        secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                        region: 'us-east-1',
+                        service: 'execute-api'
+                    }),
+                    request_params: null,
+                    request_body_schema: null,
+                    conditions: null
+                },
+                {
+                    id: 'route-auth-hawk', method: 'GET', path: '/auth/hawk-protected', status_code: 200, delay_ms: 50,
+                    response_body: JSON.stringify({ message: "Access granted via Hawk Auth", algorithm: "sha256", timestamp_verified: true }, null, 2),
+                    auth_type: 'hawk',
+                    auth_config: JSON.stringify({
+                        auth_id: 'demo-hawk-id',
+                        auth_key: 'demo-hawk-secret-key',
+                        hawk_algorithm: 'sha256'
+                    }),
+                    request_params: null,
+                    request_body_schema: null,
+                    conditions: null
+                },
+                {
+                    id: 'route-get-svg', method: 'GET', path: '/api/image.svg', status_code: 200, delay_ms: 0,
+                    response_body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><circle cx="100" cy="100" r="80" fill="#ff0000"/><text x="100" y="100" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dy=".3em">SVG Demo</text></svg>',
+                    response_headers: JSON.stringify([{ Key: "Content-Type", Value: "image/svg+xml" }]),
+                    auth_type: 'none', auth_config: null,
+                    request_params: null,
+                    request_body_schema: null,
+                    conditions: null
+                },
             ];
 
             for (const route of defaultRoutes) {
@@ -332,7 +434,7 @@ class DatabaseService {
                     status_code: route.status_code,
                     delay_ms: route.delay_ms,
                     response_body: route.response_body,
-                    response_headers: JSON.stringify([{ Key: "Content-Type", Value: "application/json" }]),
+                    response_headers: (route as any).response_headers || JSON.stringify([{ Key: "Content-Type", Value: "application/json" }]),
                     enabled: true,
                     auth_type: route.auth_type,
                     auth_config: route.auth_config,
@@ -346,6 +448,7 @@ class DatabaseService {
         // Seed Default Collections if empty
         const collections: any[] = await this.db.select('SELECT * FROM collections LIMIT 1');
         if (collections.length === 0) {
+            console.log("Creating default collection...");
             const now = Date.now();
 
             // Create default collection with global variables
@@ -521,6 +624,86 @@ class DatabaseService {
                     headers: '[]',
                     params: '[]',
                     body: JSON.stringify({ type: 'binary', binary: '' })
+                },
+
+                // Advanced Authentication Methods
+                // 16. Digest Auth
+                {
+                    id: 'req-digest', name: 'Digest Protected', method: 'GET',
+                    url: '{{base_url}}/auth/digest-protected',
+                    headers: '[]',
+                    auth: JSON.stringify({
+                        type: 'digest',
+                        digest: {
+                            username: 'admin',
+                            password: 'secret123',
+                            realm: 'Protected Area',
+                            algorithm: 'MD5'
+                        }
+                    }),
+                    params: '[]',
+                    body: ''
+                },
+                // 17. OAuth 1.0
+                {
+                    id: 'req-oauth1', name: 'OAuth 1.0 Protected', method: 'GET',
+                    url: '{{base_url}}/auth/oauth1-protected',
+                    headers: '[]',
+                    auth: JSON.stringify({
+                        type: 'oauth1',
+                        oauth1: {
+                            consumerKey: 'demo-consumer-key',
+                            consumerSecret: 'demo-consumer-secret',
+                            token: 'demo-access-token',
+                            tokenSecret: 'demo-token-secret',
+                            signatureMethod: 'HMAC-SHA1',
+                            timestamp: '',
+                            nonce: ''
+                        }
+                    }),
+                    params: '[]',
+                    body: ''
+                },
+                // 18. AWS Signature
+                {
+                    id: 'req-aws', name: 'AWS Signature Protected', method: 'GET',
+                    url: '{{base_url}}/auth/aws-protected',
+                    headers: '[]',
+                    auth: JSON.stringify({
+                        type: 'aws',
+                        aws: {
+                            accessKey: 'AKIAIOSFODNN7EXAMPLE',
+                            secretKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                            region: 'us-east-1',
+                            service: 'execute-api'
+                        }
+                    }),
+                    params: '[]',
+                    body: ''
+                },
+                // 19. Hawk Auth
+                {
+                    id: 'req-hawk', name: 'Hawk Protected', method: 'GET',
+                    url: '{{base_url}}/auth/hawk-protected',
+                    headers: '[]',
+                    auth: JSON.stringify({
+                        type: 'hawk',
+                        hawk: {
+                            authId: 'demo-hawk-id',
+                            authKey: 'demo-hawk-secret-key',
+                            algorithm: 'sha256'
+                        }
+                    }),
+                    params: '[]',
+                    body: ''
+                },
+                // 20. Image Preview (SVG)
+                {
+                    id: 'req-svg', name: 'Image Preview (SVG)', method: 'GET',
+                    url: '{{base_url}}/api/image.svg',
+                    headers: '[]',
+                    params: '[]',
+                    body: ''
                 }
             ];
 
@@ -548,8 +731,9 @@ class DatabaseService {
             // We need to reconstruct the tree. This is recursive and might be tricky with just flat selects.
             // For MVP of persistence, let's load all requests for a collection and build the tree in JS.
             const items = await this.db.select<any[]>('SELECT * FROM requests WHERE collection_id = ?', [col.id]);
+            const examples = await this.db.select<any[]>('SELECT * FROM saved_responses WHERE request_id IN (SELECT id FROM requests WHERE collection_id = ?)', [col.id]);
 
-            const tree = this.buildItemTree(items);
+            const tree = this.buildItemTree(items, examples);
 
             result.push({
                 id: col.id,
@@ -563,7 +747,7 @@ class DatabaseService {
         return result;
     }
 
-    buildItemTree(items: any[]): any[] {
+    buildItemTree(items: any[], examples: any[] = []): any[] {
         const itemMap = new Map();
         const rootItems: any[] = [];
 
@@ -571,12 +755,31 @@ class DatabaseService {
         items.forEach(item => {
             const formatted = {
                 ...item,
+                description: item.description,
+                preRequestScript: item.pre_request_script,
+                testScript: item.test_script,
                 headers: item.headers ? JSON.parse(item.headers) : [],
                 params: item.params ? JSON.parse(item.params) : [],
                 auth: item.auth ? JSON.parse(item.auth) : undefined,
                 items: [] // For folders
             };
             itemMap.set(item.id, formatted);
+        });
+
+        // 1.5 pass: attach examples
+        examples.forEach(ex => {
+            if (itemMap.has(ex.request_id)) {
+                const req = itemMap.get(ex.request_id);
+                if (!req.examples) req.examples = [];
+                req.examples.push({
+                    id: ex.id,
+                    name: ex.name,
+                    status: ex.status,
+                    code: ex.code,
+                    headers: ex.headers ? JSON.parse(ex.headers) : [],
+                    body: ex.body
+                });
+            }
         });
 
         // Second pass: link parents
@@ -600,8 +803,8 @@ class DatabaseService {
     async createCollection(collection: Collection) {
         if (!this.db) throw new Error("DB not initialized");
         await this.db.execute(
-            'INSERT INTO collections (id, name, type, created_at) VALUES (?, ?, ?, ?)',
-            [collection.id, collection.name, 'collection', Date.now()]
+            'INSERT INTO collections (id, name, type, created_at, description) VALUES (?, ?, ?, ?, ?)',
+            [collection.id, collection.name, 'collection', Date.now(), collection.description || null]
         );
 
         if (collection.variables) {
@@ -657,48 +860,110 @@ class DatabaseService {
         }
     }
 
+    // --- Environments ---
+
+    async getEnvironments(): Promise<Environment[]> {
+        if (!this.db) throw new Error("DB not initialized");
+        const envs = await this.db.select<any[]>('SELECT * FROM environments ORDER BY created_at');
+        return envs.map(e => ({
+            id: e.id,
+            name: e.name,
+            variables: e.variables ? JSON.parse(e.variables) : [],
+            is_active: !!e.is_active
+        }));
+    }
+
+    async saveEnvironment(env: Environment) {
+        if (!this.db) throw new Error("DB not initialized");
+
+        // If this one is set to active, unset others? 
+        // Logic handled in setActiveEnvironment usually, but let's enforce single active here if true
+        if (env.is_active) {
+            await this.db.execute('UPDATE environments SET is_active = 0');
+        }
+
+        await this.db.execute(`
+            INSERT INTO environments (id, name, variables, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+            name=excluded.name,
+            variables=excluded.variables,
+            is_active=excluded.is_active
+        `, [
+            env.id,
+            env.name,
+            JSON.stringify(env.variables),
+            env.is_active ? 1 : 0,
+            Date.now() // Note: this updates created_at on edit, maybe strict creation time needed? For MVP ok.
+        ]);
+    }
+
+    async deleteEnvironment(id: string) {
+        if (!this.db) throw new Error("DB not initialized");
+        await this.db.execute('DELETE FROM environments WHERE id = ?', [id]);
+    }
+
+    async setActiveEnvironment(id: string | null) {
+        if (!this.db) throw new Error("DB not initialized");
+        await this.db.execute('UPDATE environments SET is_active = 0');
+        if (id) {
+            await this.db.execute('UPDATE environments SET is_active = 1 WHERE id = ?', [id]);
+        }
+    }
+
     // --- Requests ---
 
     async saveRequest(request: RequestData, collectionId: string, parentId: string | null = null, type: 'request' | 'folder' = 'request') {
         if (!this.db) throw new Error("DB not initialized");
 
-        // Check if exists
-        const exists = await this.db.select<any[]>('SELECT id FROM requests WHERE id = ?', [request.id]);
+        const created_at = (request as any).created_at || Date.now();
 
-        if (exists.length > 0) {
-            await this.db.execute(`
-        UPDATE requests SET 
-          name = ?, method = ?, url = ?, body = ?, headers = ?, params = ?, auth = ?
-        WHERE id = ?
-      `, [
-                request.name,
-                request.method || (type === 'folder' ? 'FOLDER' : 'GET'),
-                request.url || '',
-                request.body || '',
-                JSON.stringify(request.headers || []),
-                JSON.stringify(request.params || []),
-                JSON.stringify((request as any).auth || null),
-                request.id
-            ]);
-        } else {
-            await this.db.execute(`
-        INSERT INTO requests (id, collection_id, parent_id, name, method, url, body, headers, params, auth, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
+        await this.db.execute(
+            `INSERT OR REPLACE INTO requests (id, collection_id, name, method, url, body, headers, params, auth, parent_id, type, created_at, description, pre_request_script, test_script) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
                 request.id,
                 collectionId,
-                parentId,
                 request.name,
-                request.method || (type === 'folder' ? 'FOLDER' : 'GET'),
-                request.url || '',
-                request.body || '',
+                request.method || (type === 'folder' ? null : 'GET'), // Folders might not have method
+                request.url || null,
+                typeof request.body === 'string' ? request.body : JSON.stringify(request.body),
                 JSON.stringify(request.headers || []),
                 JSON.stringify(request.params || []),
-                JSON.stringify((request as any).auth || null),
+                JSON.stringify(request.auth),
+                parentId,
                 type,
-                Date.now()
-            ]);
+                created_at,
+                request.description || null,
+                request.preRequestScript || null,
+                request.testScript || null
+            ]
+        );
+
+        // If examples are provided in the request object (e.g. during import), save them
+        if (request.examples && request.examples.length > 0) {
+            for (const ex of request.examples) {
+                await this.saveResponseExample(ex, request.id);
+            }
         }
+    }
+
+    async saveResponseExample(example: any, requestId: string) {
+        if (!this.db) throw new Error("DB not initialized");
+        await this.db.execute(
+            `INSERT OR REPLACE INTO saved_responses (id, request_id, name, status, code, headers, body, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                example.id,
+                requestId,
+                example.name,
+                example.status,
+                example.code,
+                JSON.stringify(example.headers || []),
+                typeof example.body === 'string' ? example.body : JSON.stringify(example.body),
+                Date.now()
+            ]
+        );
     }
 
     async deleteRequest(id: string) {

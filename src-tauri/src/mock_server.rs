@@ -4,15 +4,45 @@ use std::net::TcpListener;
 use tokio::sync::oneshot;
 use warp::Filter;
 use tauri::{State, Window, Emitter};
+use hmac::{Hmac, Mac};
+use sha2::{Sha256, Digest};
 
-// Auth Configuration
+// Auth Configuration - supports all auth types
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize, Default)]
 pub struct AuthConfig {
+    // Basic & Digest
     pub username: Option<String>,
     pub password: Option<String>,
+    
+    // Bearer & OAuth2
     pub token: Option<String>,
+    
+    // API Key
     pub header: Option<String>,
     pub key: Option<String>,
+    
+    // Digest specific
+    pub realm: Option<String>,
+    pub nonce: Option<String>,
+    pub algorithm: Option<String>,
+    pub qop: Option<String>,
+    pub opaque: Option<String>,
+    
+    // OAuth1 specific
+    pub consumer_key: Option<String>,
+    pub consumer_secret: Option<String>,
+    pub token_secret: Option<String>,
+    
+    // AWS specific
+    pub access_key: Option<String>,
+    pub secret_key: Option<String>,
+    pub region: Option<String>,
+    pub service: Option<String>,
+    
+    // Hawk specific
+    pub auth_id: Option<String>,
+    pub auth_key: Option<String>,
+    pub hawk_algorithm: Option<String>,
 }
 
 // Route Definitions
@@ -210,7 +240,7 @@ pub async fn get_running_servers(state: State<'_, MockServerState>) -> Result<Ve
     Ok(servers.keys().cloned().collect())
 }
 
-// Helper function to validate auth headers
+// Helper function to validate auth headers - supports ALL auth types
 fn validate_auth(route: &MockRoute, req_headers: &warp::http::HeaderMap) -> bool {
     let auth_type = route.auth_type.as_deref().unwrap_or("none");
     
@@ -224,84 +254,116 @@ fn validate_auth(route: &MockRoute, req_headers: &warp::http::HeaderMap) -> bool
     };
     
     match auth_type {
-        "basic" => {
-            // Check Authorization: Basic base64(username:password)
-            let auth_header = req_headers.get("authorization")
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("");
-            
-            if !auth_header.starts_with("Basic ") {
-                return false;
-            }
-            
-            let encoded = &auth_header[6..]; // Remove "Basic " prefix
-            let decoded = match base64_decode(encoded) {
-                Some(d) => d,
-                None => return false,
-            };
-            
-            let expected_username = auth_config.username.as_deref().unwrap_or("");
-            let expected_password = auth_config.password.as_deref().unwrap_or("");
-            let expected = format!("{}:{}", expected_username, expected_password);
-            
-            decoded == expected
-        }
-        "bearer" => {
-            // Check Authorization: Bearer token
-            let auth_header = req_headers.get("authorization")
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("");
-            
-            if !auth_header.starts_with("Bearer ") {
-                return false;
-            }
-            
-            let token = &auth_header[7..]; // Remove "Bearer " prefix
-            let expected_token = auth_config.token.as_deref().unwrap_or("");
-            
-            token == expected_token
-        }
-        "api_key" => {
-            // Check custom header with expected value
-            let header_name = auth_config.header.as_deref().unwrap_or("X-API-Key");
-            let expected_key = auth_config.key.as_deref().unwrap_or("");
-            
-            let actual_key = req_headers.get(header_name)
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("");
-            
-            actual_key == expected_key
-        }
+        "basic" => validate_basic_auth(auth_config, req_headers),
+        "bearer" => validate_bearer_auth(auth_config, req_headers),
+        "api_key" => validate_api_key_auth(auth_config, req_headers),
+        "digest" => validate_digest_auth(auth_config, req_headers),
+        "oauth1" => validate_oauth1_auth(auth_config, req_headers),
+        "oauth2" => validate_oauth2_auth(auth_config, req_headers),
+        "aws" => validate_aws_auth(auth_config, req_headers),
+        "hawk" => validate_hawk_auth(auth_config, req_headers),
         _ => true
     }
 }
 
-// Simple base64 decode helper
-fn base64_decode(input: &str) -> Option<String> {
-    use std::str;
+fn validate_basic_auth(config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
     
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    
-    let input = input.trim_end_matches('=');
-    let mut bytes = Vec::new();
-    let mut buffer: u32 = 0;
-    let mut bits_collected = 0;
-    
-    for c in input.chars() {
-        let val = ALPHABET.iter().position(|&x| x == c as u8);
-        match val {
-            Some(v) => {
-                buffer = (buffer << 6) | (v as u32);
-                bits_collected += 6;
-                if bits_collected >= 8 {
-                    bits_collected -= 8;
-                    bytes.push((buffer >> bits_collected) as u8);
-                    buffer &= (1 << bits_collected) - 1;
-                }
-            }
-            None => return None,
-        }
+    if !auth_header.starts_with("Basic ") {
+        return false;
     }
     
-    String::from_utf8(bytes).ok()
+    let encoded = &auth_header[6..];
+    let decoded = match base64_decode(encoded) {
+        Some(d) => d,
+        None => return false,
+    };
+    
+    let expected_username = config.username.as_deref().unwrap_or("");
+    let expected_password = config.password.as_deref().unwrap_or("");
+    let expected = format!("{}:{}", expected_username, expected_password);
+    
+    decoded == expected
+}
+
+fn validate_bearer_auth(config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    if !auth_header.starts_with("Bearer ") {
+        return false;
+    }
+    
+    let token = &auth_header[7..];
+    let expected_token = config.token.as_deref().unwrap_or("");
+    
+    token == expected_token
+}
+
+fn validate_api_key_auth(config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    let header_name = config.header.as_deref().unwrap_or("X-API-Key");
+    let expected_key = config.key.as_deref().unwrap_or("");
+    
+    let actual_key = headers.get(header_name)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    actual_key == expected_key
+}
+
+fn validate_digest_auth(_config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    // Simplified Digest validation - just check if Authorization header with Digest is present
+    // Full Digest auth requires challenge-response which is complex for mock server
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    auth_header.starts_with("Digest ")
+}
+
+fn validate_oauth1_auth(_config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    // Simplified OAuth1 validation - check for OAuth Authorization header
+    // Full OAuth1 signature validation is complex and not needed for mock
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    auth_header.starts_with("OAuth ")
+}
+
+fn validate_oauth2_auth(config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    // OAuth2 typically uses Bearer token
+    validate_bearer_auth(config, headers)
+}
+
+fn validate_aws_auth(_config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    // Simplified AWS validation - check for AWS4-HMAC-SHA256 Authorization header
+    // Full AWS signature validation is very complex
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    auth_header.starts_with("AWS4-HMAC-SHA256")
+}
+
+fn validate_hawk_auth(_config: &AuthConfig, headers: &warp::http::HeaderMap) -> bool {
+    // Simplified Hawk validation - check for Hawk Authorization header
+    let auth_header = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    
+    auth_header.starts_with("Hawk ")
+}
+
+// Simple base64 decode helper
+fn base64_decode(input: &str) -> Option<String> {
+    use base64::{Engine as _, engine::general_purpose};
+    
+    match general_purpose::STANDARD.decode(input) {
+        Ok(bytes) => String::from_utf8(bytes).ok(),
+        Err(_) => None
+    }
 }

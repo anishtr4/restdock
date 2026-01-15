@@ -1,7 +1,13 @@
+
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { AuthData } from "@/types";
+import { ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
     Table,
     TableBody,
@@ -10,14 +16,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-
-interface AuthData {
-    type: 'none' | 'bearer' | 'basic' | 'apiKey' | 'oauth2';
-    bearer?: { token: string };
-    basic?: { username: string; password: string };
-    apiKey?: { key: string; value: string; addTo: 'header' | 'query' };
-    oauth2?: { accessToken: string; tokenType: string };
-}
 
 interface AuthorizationPanelProps {
     auth?: AuthData;
@@ -35,312 +33,301 @@ const AuthorizationPanel = ({
     const [autocomplete, setAutocomplete] = useState<{
         show: boolean;
         field: string;
+        nestedField?: string;
         suggestions: typeof collectionVariables;
         cursorPosition: number;
     } | null>(null);
 
+    const authTypes: { id: AuthData['type']; label: string }[] = [
+        { id: 'none', label: 'No Auth' },
+        { id: 'bearer', label: 'Bearer Token' },
+        { id: 'basic', label: 'Basic Auth' },
+        { id: 'apiKey', label: 'API Key' },
+        { id: 'digest', label: 'Digest Auth' },
+        { id: 'oauth1', label: 'OAuth 1.0' },
+        { id: 'oauth2', label: 'OAuth 2.0' },
+        { id: 'aws', label: 'AWS Signature' },
+        { id: 'hawk', label: 'Hawk' },
+    ];
+
     const handleTypeChange = (type: AuthData['type']) => {
-        const newAuth: AuthData = { type };
-
-        if (type === 'bearer') {
-            newAuth.bearer = { token: '' };
-        } else if (type === 'basic') {
-            newAuth.basic = { username: '', password: '' };
-        } else if (type === 'apiKey') {
-            newAuth.apiKey = { key: '', value: '', addTo: 'header' };
-        } else if (type === 'oauth2') {
-            newAuth.oauth2 = { accessToken: '', tokenType: 'Bearer' };
+        let newAuth: AuthData = { type };
+        switch (type) {
+            case 'bearer': newAuth.bearer = { token: '' }; break;
+            case 'basic': newAuth.basic = { username: '', password: '' }; break;
+            case 'apiKey': newAuth.apiKey = { key: '', value: '', addTo: 'header' }; break;
+            case 'digest': newAuth.digest = { username: '', password: '', realm: '', nonce: '', algorithm: 'MD5', qop: 'auth', opaque: '', cnonce: '' }; break;
+            case 'oauth1': newAuth.oauth1 = { consumerKey: '', consumerSecret: '', token: '', tokenSecret: '', signatureMethod: 'HMAC-SHA1', addParamsToHeader: true }; break;
+            case 'aws': newAuth.aws = { accessKey: '', secretKey: '', region: 'us-east-1', service: 'execute-api' }; break;
+            case 'hawk': newAuth.hawk = { authId: '', authKey: '', algorithm: 'sha256' }; break;
+            case 'oauth2': newAuth.oauth2 = { accessToken: '', tokenType: 'Bearer', addTokenTo: 'header', grantType: 'authorization_code' }; break;
         }
-
         onChange?.(newAuth);
     };
 
-    const handleFieldChange = (field: string, value: string) => {
+    const handleNestedChange = (category: keyof AuthData, field: string, value: any) => {
+        if (!currentAuth[category]) return;
         const newAuth = { ...currentAuth };
-
-        if (currentAuth.type === 'bearer' && newAuth.bearer) {
-            newAuth.bearer.token = value;
-        } else if (currentAuth.type === 'basic' && newAuth.basic) {
-            if (field === 'username') newAuth.basic.username = value;
-            else if (field === 'password') newAuth.basic.password = value;
-        } else if (currentAuth.type === 'apiKey' && newAuth.apiKey) {
-            if (field === 'key') newAuth.apiKey.key = value;
-            else if (field === 'value') newAuth.apiKey.value = value;
-        } else if (currentAuth.type === 'oauth2' && newAuth.oauth2) {
-            if (field === 'accessToken') newAuth.oauth2.accessToken = value;
-            else if (field === 'tokenType') newAuth.oauth2.tokenType = value;
-        }
-
+        // @ts-ignore
+        newAuth[category] = { ...newAuth[category], [field]: value };
         onChange?.(newAuth);
 
-        // Check for {{ pattern for autocomplete
-        const match = value.match(/\{\{([^}]*)$/);
-        if (match && collectionVariables.length > 0) {
-            const searchTerm = match[1].toLowerCase();
-            const suggestions = collectionVariables.filter(v =>
-                v.enabled && v.key.toLowerCase().includes(searchTerm)
-            );
-
-            if (suggestions.length > 0) {
-                setAutocomplete({
-                    show: true,
-                    field,
-                    suggestions,
-                    cursorPosition: value.length
-                });
-            } else {
-                setAutocomplete(null);
-            }
-        } else {
-            setAutocomplete(null);
+        if (typeof value === 'string') {
+            const match = value.match(/\{\{([^}]*)$/);
+            if (match && collectionVariables.length > 0) {
+                const searchTerm = match[1].toLowerCase();
+                const suggestions = collectionVariables.filter(v => v.enabled && v.key.toLowerCase().includes(searchTerm));
+                if (suggestions.length > 0) {
+                    setAutocomplete({ show: true, field: category, nestedField: field, suggestions, cursorPosition: value.length });
+                } else { setAutocomplete(null); }
+            } else { setAutocomplete(null); }
         }
     };
 
-    const insertVariable = (field: string, varKey: string) => {
-        let currentValue = '';
-
-        if (currentAuth.type === 'bearer' && currentAuth.bearer) {
-            currentValue = currentAuth.bearer.token;
-        } else if (currentAuth.type === 'basic' && currentAuth.basic) {
-            currentValue = field === 'username' ? currentAuth.basic.username : currentAuth.basic.password;
-        } else if (currentAuth.type === 'apiKey' && currentAuth.apiKey) {
-            currentValue = field === 'key' ? currentAuth.apiKey.key : currentAuth.apiKey.value;
-        } else if (currentAuth.type === 'oauth2' && currentAuth.oauth2) {
-            currentValue = field === 'accessToken' ? currentAuth.oauth2.accessToken : currentAuth.oauth2.tokenType;
-        }
-
+    const insertVariable = (category: keyof AuthData, field: string, varKey: string) => {
+        // @ts-ignore
+        const currentValue = currentAuth[category]?.[field] || '';
         const beforeMatch = currentValue.substring(0, currentValue.lastIndexOf('{{'));
         const newValue = beforeMatch + `{{${varKey}}}`;
-        handleFieldChange(field, newValue);
+        handleNestedChange(category, field, newValue);
         setAutocomplete(null);
     };
 
-    const handleApiKeyAddToChange = (addTo: 'header' | 'query') => {
-        if (currentAuth.type === 'apiKey' && currentAuth.apiKey) {
-            const newAuth = { ...currentAuth };
-            newAuth.apiKey!.addTo = addTo;
-            onChange?.(newAuth);
-        }
-    };
-
-    // Shared styling constants to match KeyValueEditor
-    const tableHeaderClass = "w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70";
-    const headerRowClass = "hover:bg-transparent border-b divide-x divide-border/50 bg-muted/30";
-    const rowClass = "hover:bg-muted/5 border-b divide-x divide-border/20 group h-9 transition-colors";
-    const labelCellClass = "p-0 align-middle bg-muted/5 w-[30%] px-3 text-xs font-medium text-muted-foreground/80";
-    const inputCellClass = "p-0 align-middle relative";
-    const inputClass = "h-9 w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm transition-all placeholder:text-muted-foreground/40";
-
-    return (
-        <div className="space-y-6">
-            {/* Auth Type Selector - Kept clean but consistent */}
-            <div className="flex items-center gap-4 py-2">
-                <Label className="w-24 flex-shrink-0 text-muted-foreground font-medium text-xs uppercase tracking-wide">Auth Type</Label>
-                <Select value={currentAuth.type} onValueChange={(value) => handleTypeChange(value as AuthData['type'])}>
-                    <SelectTrigger className="w-[200px] h-9">
-                        <SelectValue placeholder="Select auth type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">No Auth</SelectItem>
-                        <SelectItem value="bearer">Bearer Token</SelectItem>
-                        <SelectItem value="basic">Basic Auth</SelectItem>
-                        <SelectItem value="apiKey">API Key</SelectItem>
-                        <SelectItem value="oauth2">OAuth 2.0</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Content Area */}
-            {currentAuth.type !== 'none' && (
-                <div className="w-full border rounded-md overflow-hidden bg-background shadow-sm">
-                    <Table className="border-collapse table-fixed">
-                        <TableHeader>
-                            <TableRow className={headerRowClass}>
-                                <TableHead className={tableHeaderClass}>Key</TableHead>
-                                <TableHead className="w-[40%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Value</TableHead>
-                                <TableHead className="w-[30%] px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {currentAuth.type === 'bearer' && currentAuth.bearer && (
-                                <TableRow className={rowClass}>
-                                    <TableCell className={labelCellClass}>Token</TableCell>
-                                    <TableCell className={inputCellClass}>
-                                        <Input
-                                            type="text"
-                                            placeholder="Enter bearer token"
-                                            value={currentAuth.bearer.token}
-                                            onChange={(e) => handleFieldChange('token', e.target.value)}
-                                            className={inputClass}
-                                        />
-                                        {autocomplete && autocomplete.show && autocomplete.field === 'token' && (
-                                            <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
-                                                <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter bg-muted/30 border-b">Variables</div>
-                                                {autocomplete.suggestions.map((v, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm group/item transition-colors"
-                                                        onClick={() => insertVariable('token', v.key)}
-                                                    >
-                                                        <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary group-hover/item:border-primary/30 transition-colors shrink-0">{`{{${v.key}}}`}</code>
-                                                        <span className="text-muted-foreground text-[10px] ml-2 truncate group-hover/item:text-foreground transition-colors text-right">{v.value}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="p-0 align-middle">
-                                        <div className="px-3 text-xs italic text-muted-foreground/50">Bearer Token</div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {currentAuth.type === 'basic' && currentAuth.basic && (
-                                <>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Username</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="text"
-                                                placeholder="Username"
-                                                value={currentAuth.basic.username}
-                                                onChange={(e) => handleFieldChange('username', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                            {autocomplete && autocomplete.show && autocomplete.field === 'username' && (
-                                                <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
-                                                    {autocomplete.suggestions.map((v, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm" onClick={() => insertVariable('username', v.key)}>
-                                                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary">{`{{${v.key}}}`}</code>
-                                                            <span className="text-muted-foreground text-[10px] ml-2 truncate">{v.value}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Password</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="password"
-                                                placeholder="Password"
-                                                value={currentAuth.basic.password}
-                                                onChange={(e) => handleFieldChange('password', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                            {autocomplete && autocomplete.show && autocomplete.field === 'password' && (
-                                                <div className="absolute top-full left-0 right-0 mt-0 bg-popover border border-border rounded-b-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
-                                                    {autocomplete.suggestions.map((v, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 hover:bg-accent cursor-pointer text-sm" onClick={() => insertVariable('password', v.key)}>
-                                                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded border font-mono text-primary">{`{{${v.key}}}`}</code>
-                                                            <span className="text-muted-foreground text-[10px] ml-2 truncate">{v.value}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                </>
-                            )}
-
-                            {currentAuth.type === 'apiKey' && currentAuth.apiKey && (
-                                <>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Key</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="text"
-                                                placeholder="Key (e.g. X-API-Key)"
-                                                value={currentAuth.apiKey.key}
-                                                onChange={(e) => handleFieldChange('key', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Value</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="text"
-                                                placeholder="API Key value"
-                                                value={currentAuth.apiKey.value}
-                                                onChange={(e) => handleFieldChange('value', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Add To</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Select value={currentAuth.apiKey.addTo} onValueChange={(value) => handleApiKeyAddToChange(value as 'header' | 'query')}>
-                                                <SelectTrigger className="w-full h-9 bg-transparent border-none focus:ring-1 focus:ring-primary/30 rounded-none px-3 text-sm shadow-none focus:ring-inset">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="header">Header</SelectItem>
-                                                    <SelectItem value="query">Query Params</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle">
-                                            <div className="px-3 text-xs italic text-muted-foreground/50">Where to add key</div>
-                                        </TableCell>
-                                    </TableRow>
-                                </>
-                            )}
-
-                            {currentAuth.type === 'oauth2' && currentAuth.oauth2 && (
-                                <>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Access Token</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="text"
-                                                placeholder="Access token"
-                                                value={currentAuth.oauth2.accessToken}
-                                                onChange={(e) => handleFieldChange('accessToken', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                    <TableRow className={rowClass}>
-                                        <TableCell className={labelCellClass}>Token Type</TableCell>
-                                        <TableCell className={inputCellClass}>
-                                            <Input
-                                                type="text"
-                                                placeholder="Bearer"
-                                                value={currentAuth.oauth2.tokenType}
-                                                onChange={(e) => handleFieldChange('tokenType', e.target.value)}
-                                                className={inputClass}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="p-0 align-middle"></TableCell>
-                                    </TableRow>
-                                </>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-
-            {currentAuth.type === 'none' && (
-                <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/5 border rounded-md border-dashed">
-                    <p className="text-sm text-muted-foreground">
-                        This request does not use any authorization.
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                        Select an Auth type from the dropdown above to add credentials.
-                    </p>
+    const TableInput = ({ category, field, placeholder, type = "text", className = "" }: { category: keyof AuthData, field: string, placeholder?: string, type?: string, className?: string }) => (
+        <div className={`relative w-full h-9 group/input-wrapper ${className}`}>
+            <Input
+                type={type}
+                placeholder={placeholder}
+                // @ts-ignore
+                value={currentAuth[category]?.[field] || ''}
+                onChange={(e) => handleNestedChange(category, field, e.target.value)}
+                className="absolute inset-0 h-full w-full bg-transparent border-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30 rounded-none px-3 text-sm transition-all placeholder:text-muted-foreground/40 z-10"
+            />
+            {autocomplete && autocomplete.show && autocomplete.field === category && autocomplete.nestedField === field && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                    {autocomplete.suggestions.map((v) => (
+                        <div key={v.key} className="px-3 py-2 cursor-pointer hover:bg-muted/50 border-b border-border/30 last:border-0" onClick={() => insertVariable(category, field, v.key)}>
+                            <div className="font-mono text-xs font-semibold text-primary mb-0.5">{`{{${v.key}}}`}</div>
+                            <div className="text-[11px] text-muted-foreground truncate">{v.value || <span className="italic">Empty</span>}</div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
     );
+
+    const AuthTable = ({ headers, children }: { headers: string[], children: React.ReactNode }) => (
+        <div className="w-full border rounded-md overflow-hidden bg-background shadow-sm">
+            <Table className="border-collapse table-fixed">
+                <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent border-b divide-x divide-border/50">
+                        {headers.map((h, i) => (
+                            <TableHead key={i} className="px-3 h-9 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 align-middle">
+                                {h}
+                            </TableHead>
+                        ))}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow className="hover:bg-muted/5 border-b divide-x divide-border/20 group h-9 transition-colors">
+                        {children}
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </div>
+    );
+
+    return (
+        <div className="flex w-full h-full bg-background overflow-hidden">
+            {/* Sidebar */}
+            <div className="w-48 flex-shrink-0 border-r bg-muted/5 flex flex-col">
+                <div className="p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Auth Type
+                </div>
+                <div className="flex-1 space-y-0.5 px-2 overflow-y-auto">
+                    {authTypes.map(type => (
+                        <button
+                            key={type.id}
+                            onClick={() => handleTypeChange(type.id)}
+                            className={cn(
+                                "w-full text-left px-3 py-2 text-sm rounded-md transition-all flex items-center justify-between group relative overflow-hidden",
+                                currentAuth.type === type.id
+                                    ? "bg-muted text-foreground font-medium shadow-sm lg:border-l-[3px] lg:border-l-primary lg:rounded-l-none lg:bg-gradient-to-r lg:from-primary/5 lg:to-transparent"
+                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                        >
+                            <span className="relative z-10">{type.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 h-full min-w-0 bg-background">
+                <ScrollArea className="h-full w-full">
+                    <div className="p-4 pb-20">
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {currentAuth.type === 'none' && (
+                                <div className="flex flex-col items-center justify-center py-12 border border-dashed rounded-lg">
+                                    <ShieldCheck className="w-8 h-8 text-muted-foreground/30 mb-3" />
+                                    <p className="text-sm text-muted-foreground text-center">
+                                        This request does not use any authorization.
+                                    </p>
+                                </div>
+                            )}
+
+                            {currentAuth.type === 'bearer' && (
+                                <AuthTable headers={["Token"]}>
+                                    <TableCell className="p-0 align-middle"><TableInput category="bearer" field="token" placeholder="Bearer Token" /></TableCell>
+                                </AuthTable>
+                            )}
+
+                            {currentAuth.type === 'basic' && (
+                                <AuthTable headers={["Username", "Password"]}>
+                                    <TableCell className="p-0 align-middle"><TableInput category="basic" field="username" placeholder="Username" /></TableCell>
+                                    <TableCell className="p-0 align-middle"><TableInput category="basic" field="password" type="password" placeholder="Password" /></TableCell>
+                                </AuthTable>
+                            )}
+
+                            {currentAuth.type === 'apiKey' && (
+                                <AuthTable headers={["Key", "Value", "Add To"]}>
+                                    <TableCell className="p-0 align-middle"><TableInput category="apiKey" field="key" placeholder="Key" /></TableCell>
+                                    <TableCell className="p-0 align-middle"><TableInput category="apiKey" field="value" placeholder="Value" /></TableCell>
+                                    <TableCell className="p-0 align-middle w-[150px]">
+                                        <Select value={currentAuth.apiKey?.addTo} onValueChange={(val) => handleNestedChange('apiKey', 'addTo', val)}>
+                                            <SelectTrigger className="h-9 w-full bg-transparent border-none focus:ring-0 focus:ring-offset-0 rounded-none px-3 text-xs font-medium text-muted-foreground">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="header">Header</SelectItem>
+                                                <SelectItem value="query">Query Params</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                </AuthTable>
+                            )}
+
+                            {currentAuth.type === 'aws' && (
+                                <div className="space-y-6">
+                                    <AuthTable headers={["Access Key", "Secret Key"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="aws" field="accessKey" placeholder="AWS Access Key ID" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="aws" field="secretKey" type="password" placeholder="AWS Secret Access Key" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Region", "Service", "Session Token"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="aws" field="region" placeholder="us-east-1" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="aws" field="service" placeholder="e.g. s3" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="aws" field="sessionToken" placeholder="AWS Session Token" /></TableCell>
+                                    </AuthTable>
+                                </div>
+                            )}
+
+                            {currentAuth.type === 'digest' && (
+                                <div className="space-y-6">
+                                    <AuthTable headers={["Username", "Password"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="username" placeholder="Username" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="password" type="password" placeholder="Password" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Realm", "Nonce"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="realm" placeholder="Realm" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="nonce" placeholder="Nonce" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Algorithm", "qop", "Opaque"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="algorithm" placeholder="MD5" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="qop" placeholder="auth" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="digest" field="opaque" placeholder="Opaque" /></TableCell>
+                                    </AuthTable>
+                                </div>
+                            )}
+
+                            {currentAuth.type === 'oauth1' && (
+                                <div className="space-y-6">
+                                    <AuthTable headers={["Consumer Key", "Consumer Secret"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="oauth1" field="consumerKey" placeholder="Consumer Key" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="oauth1" field="consumerSecret" type="password" placeholder="Consumer Secret" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Access Token", "Token Secret"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="oauth1" field="token" placeholder="Access Token" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="oauth1" field="tokenSecret" type="password" placeholder="Token Secret" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Signature Method"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="oauth1" field="signatureMethod" placeholder="HMAC-SHA1" /></TableCell>
+                                    </AuthTable>
+                                </div>
+                            )}
+
+                            {currentAuth.type === 'hawk' && (
+                                <div className="space-y-6">
+                                    <AuthTable headers={["Auth ID", "Auth Key"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="hawk" field="authId" placeholder="Hawk ID" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="hawk" field="authKey" type="password" placeholder="Hawk Key" /></TableCell>
+                                    </AuthTable>
+                                    <AuthTable headers={["Algorithm", "App"]}>
+                                        <TableCell className="p-0 align-middle"><TableInput category="hawk" field="algorithm" placeholder="sha256" /></TableCell>
+                                        <TableCell className="p-0 align-middle"><TableInput category="hawk" field="app" placeholder="App ID" /></TableCell>
+                                    </AuthTable>
+                                </div>
+                            )}
+
+                            {currentAuth.type === 'oauth2' && (
+                                <div className="space-y-8">
+                                    {/* Configuration Section */}
+                                    <div className="space-y-4">
+                                        <div className="pb-2 border-b">
+                                            <h3 className="text-sm font-medium tracking-wide text-foreground">Configuration</h3>
+                                        </div>
+
+                                        <div className="space-y-1.5 relative w-1/2 pr-2">
+                                            <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest pl-1">Grant Type</Label>
+                                            <Select value={currentAuth.oauth2?.grantType} onValueChange={(val) => handleNestedChange('oauth2', 'grantType', val)}>
+                                                <SelectTrigger className="bg-background/50 h-8 text-sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="authorization_code">Authorization Code</SelectItem>
+                                                    <SelectItem value="client_credentials">Client Credentials</SelectItem>
+                                                    <SelectItem value="implicit">Implicit</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <AuthTable headers={["Callback URL", "Auth URL"]}>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="redirectUri" placeholder="Callback URL" /></TableCell>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="authUrl" placeholder="https://..." /></TableCell>
+                                        </AuthTable>
+                                        <AuthTable headers={["Client ID", "Client Secret"]}>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="clientId" placeholder="Client ID" /></TableCell>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="clientSecret" type="password" placeholder="Client Secret" /></TableCell>
+                                        </AuthTable>
+                                        <AuthTable headers={["Access Token URL", "Scope"]}>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="accessTokenUrl" placeholder="https://..." /></TableCell>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="scope" placeholder="read:user write:user" /></TableCell>
+                                        </AuthTable>
+
+                                        <Button className="w-full" variant="secondary" onClick={() => alert("Feature Coming Soon: This will open browser to " + (currentAuth.oauth2?.authUrl || 'Auth URL'))}>
+                                            Get New Access Token
+                                        </Button>
+                                    </div>
+
+                                    {/* Current Token Section */}
+                                    <div className="space-y-4">
+                                        <div className="pb-2 border-b">
+                                            <h3 className="text-sm font-medium tracking-wide text-foreground">Current Token</h3>
+                                        </div>
+                                        <AuthTable headers={["Access Token"]}>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="accessToken" placeholder="Access Token" /></TableCell>
+                                        </AuthTable>
+                                        <AuthTable headers={["Header Prefix"]}>
+                                            <TableCell className="p-0 align-middle"><TableInput category="oauth2" field="tokenType" placeholder="Bearer" /></TableCell>
+                                        </AuthTable>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </ScrollArea>
+            </div>
+        </div>
+    );
 };
 
-export { AuthorizationPanel as default, type AuthData };
+export default AuthorizationPanel;

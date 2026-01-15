@@ -4,7 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { checkUpdate } from '@/lib/updater';
 
-export const UpdateChecker = () => {
+interface UpdateCheckerProps {
+    onUpdateAvailable?: (hasUpdate: boolean) => void;
+}
+
+export const UpdateChecker = ({ onUpdateAvailable }: UpdateCheckerProps) => {
     const [updateInfo, setUpdateInfo] = useState<any>(null);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -15,15 +19,19 @@ export const UpdateChecker = () => {
                 if (info) {
                     setUpdateInfo(info);
                     setIsOpen(true);
+                    onUpdateAvailable?.(true);
+                } else {
+                    onUpdateAvailable?.(false);
                 }
             } catch (error) {
                 // Silent error for auto-check
+                onUpdateAvailable?.(false);
             }
         };
 
         const timer = setTimeout(runCheck, 2000);
         return () => clearTimeout(timer);
-    }, []);
+    }, [onUpdateAvailable]);
 
     const getDownloadUrl = () => {
         if (!updateInfo?.platforms) return null;

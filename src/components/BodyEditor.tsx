@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -7,14 +6,13 @@ import KeyValueEditor from "./KeyValueEditor";
 import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from "@/components/ui/button";
 
-interface BodyData {
-    type: 'none' | 'json' | 'raw' | 'formdata' | 'x-www-form-urlencoded' | 'binary';
-    json?: string;
-    raw?: string;
-    formdata?: { key: string; value: string; enabled: boolean }[];
-    urlencoded?: { key: string; value: string; enabled: boolean }[];
-    binary?: string;
-}
+// CodeMirror imports
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from "@codemirror/view";
+import { appEditorTheme } from "@/lib/editorTheme";
+import GraphQLEditor from "./GraphQLEditor";
+import { BodyData } from "@/types";
 
 interface BodyEditorProps {
     body?: BodyData;
@@ -29,82 +27,58 @@ const BodyEditor = ({
 }: BodyEditorProps) => {
     const currentBody: BodyData = body || { type: 'none' };
 
-    const [autocomplete, setAutocomplete] = useState<{
-        show: boolean;
-        suggestions: typeof collectionVariables;
-        cursorPosition: number;
-    } | null>(null);
-
     const handleTypeChange = (type: BodyData['type']) => {
-        const newBody: BodyData = { type };
+        let newBody: BodyData;
+
+        // Helper to safely get existing values if they exist in the union
+        const getExisting = <K extends keyof any>(key: K): any => {
+            // @ts-ignore
+            return currentBody[key];
+        }
 
         if (type === 'json') {
-            newBody.json = '{\n  \n}';
+            newBody = { type, json: getExisting('json') ?? '{\n  \n}' };
+        } else if (type === 'graphql') {
+            newBody = {
+                type: 'graphql',
+                graphql: getExisting('graphql') ?? {
+                    query: 'query {\n  \n}',
+                    variables: '{}'
+                }
+            };
         } else if (type === 'raw') {
-            newBody.raw = '';
+            newBody = { type, raw: getExisting('raw') ?? '' };
         } else if (type === 'formdata') {
-            newBody.formdata = [{ key: '', value: '', enabled: true }];
+            newBody = { type, formdata: getExisting('formdata') ?? [{ key: '', value: '', type: 'text', enabled: true }] };
         } else if (type === 'x-www-form-urlencoded') {
-            newBody.urlencoded = [{ key: '', value: '', enabled: true }];
+            newBody = { type, urlencoded: getExisting('urlencoded') ?? [{ key: '', value: '', enabled: true }] };
         } else if (type === 'binary') {
-            newBody.binary = '';
+            newBody = { type, binary: getExisting('binary') ?? '' };
+        } else {
+            newBody = { type };
         }
 
         onChange?.(newBody);
     };
 
     const handleContentChange = (value: string) => {
-        const newBody = { ...currentBody };
-
         if (currentBody.type === 'json') {
-            newBody.json = value;
+            onChange?.({ ...currentBody, json: value });
         } else if (currentBody.type === 'raw') {
-            newBody.raw = value;
-        }
-
-        onChange?.(newBody);
-
-        // Check for {{ pattern for autocomplete
-        const match = value.match(/\{\{([^}]*)$/);
-        if (match && collectionVariables.length > 0) {
-            const searchTerm = match[1].toLowerCase();
-            const suggestions = collectionVariables.filter(v =>
-                v.enabled && v.key.toLowerCase().includes(searchTerm)
-            );
-
-            if (suggestions.length > 0) {
-                setAutocomplete({
-                    show: true,
-                    suggestions,
-                    cursorPosition: value.length
-                });
-            } else {
-                setAutocomplete(null);
-            }
-        } else {
-            setAutocomplete(null);
+            onChange?.({ ...currentBody, raw: value });
         }
     };
 
-    const insertVariable = (varKey: string, textareaRef: HTMLTextAreaElement | null) => {
-        if (!textareaRef) return;
-
-        const currentValue = currentBody.type === 'json' ? (currentBody.json || '') : (currentBody.raw || '');
-        const cursorPos = textareaRef.selectionStart;
-        const beforeCursor = currentValue.substring(0, cursorPos);
-        const afterCursor = currentValue.substring(cursorPos);
-
-        const lastBraceIndex = beforeCursor.lastIndexOf('{{');
-        const newValue = beforeCursor.substring(0, lastBraceIndex) + `{{${varKey}}}` + afterCursor;
-
-        handleContentChange(newValue);
-        setAutocomplete(null);
-
-        setTimeout(() => {
-            const newCursorPos = lastBraceIndex + `{{${varKey}}}`.length;
-            textareaRef.setSelectionRange(newCursorPos, newCursorPos);
-            textareaRef.focus();
-        }, 0);
+    const formatJSON = () => {
+        if (currentBody.type === 'json' && currentBody.json) {
+            try {
+                const parsed = JSON.parse(currentBody.json);
+                const formatted = JSON.stringify(parsed, null, 2);
+                handleContentChange(formatted);
+            } catch (e) {
+                // Invalid JSON, ignore
+            }
+        }
     };
 
     const handleFilePick = async (onPick: (path: string) => void) => {
@@ -123,29 +97,38 @@ const BodyEditor = ({
 
     return (
         <div className="flex flex-col h-full gap-4">
-            {/* Body Type Selector */}
-            <div className="pb-2 overflow-x-auto no-scrollbar">
-                <RadioGroup
-                    value={currentBody.type}
-                    onValueChange={(value) => handleTypeChange(value as BodyData['type'])}
-                    className="flex flex-row items-center gap-6"
-                >
-                    {[
-                        { value: 'none', label: 'None' },
-                        { value: 'json', label: 'JSON' },
-                        { value: 'raw', label: 'Raw' },
-                        { value: 'formdata', label: 'Form Data' },
-                        { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
-                        { value: 'binary', label: 'Binary' },
-                    ].map((opt) => (
-                        <div key={opt.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={opt.value} id={`body-${opt.value}`} />
-                            <Label htmlFor={`body-${opt.value}`} className="cursor-pointer font-normal text-muted-foreground aria-checked:text-foreground aria-checked:font-medium">
-                                {opt.label}
-                            </Label>
-                        </div>
-                    ))}
-                </RadioGroup>
+            <div className="flex items-center justify-between pb-2 border-b">
+                {/* Body Type Selector */}
+                <div className="overflow-x-auto no-scrollbar">
+                    <RadioGroup
+                        value={currentBody.type}
+                        onValueChange={(value) => handleTypeChange(value as BodyData['type'])}
+                        className="flex flex-row items-center gap-6"
+                    >
+                        {[
+                            { value: 'none', label: 'None' },
+                            { value: 'json', label: 'JSON' },
+                            { value: 'graphql', label: 'GraphQL' },
+                            { value: 'raw', label: 'Raw' },
+                            { value: 'formdata', label: 'Form Data' },
+                            { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
+                            { value: 'binary', label: 'Binary' },
+                        ].map((opt) => (
+                            <div key={opt.value} className="flex items-center space-x-2">
+                                <RadioGroupItem value={opt.value} id={`body-${opt.value}`} />
+                                <Label htmlFor={`body-${opt.value}`} className="cursor-pointer font-normal text-muted-foreground aria-checked:text-foreground aria-checked:font-medium">
+                                    {opt.label}
+                                </Label>
+                            </div>
+                        ))}
+                    </RadioGroup>
+                </div>
+
+                {currentBody.type === 'json' && (
+                    <Button variant="ghost" size="sm" onClick={formatJSON} className="h-7 text-xs">
+                        Format JSON
+                    </Button>
+                )}
             </div>
 
             {/* Content Area */}
@@ -156,63 +139,54 @@ const BodyEditor = ({
             )}
 
             {currentBody.type === 'json' && (
-                <div className="relative border rounded-md shadow-sm bg-background flex-1 flex flex-col min-h-0">
-                    <textarea
-                        className="w-full flex-1 p-4 font-mono text-sm bg-transparent border-0 focus:outline-none resize-none no-scrollbar"
-                        placeholder='{\n  "key": "value"\n}'
+                <div className="relative border rounded-md shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden bg-background">
+                    <CodeMirror
                         value={currentBody.json || ''}
-                        onChange={(e) => handleContentChange(e.target.value)}
-                        spellCheck={false}
-                        ref={(ref) => {
-                            if (ref && autocomplete?.show) {
-                                (window as any).currentTextarea = ref;
-                            }
+                        height="100%"
+                        style={{ height: '100%' }}
+                        theme={appEditorTheme}
+                        extensions={[
+                            json(),
+                            EditorView.theme({ "&": { height: "100%" } })
+                        ]}
+                        onChange={handleContentChange}
+                        className="absolute inset-0 text-sm"
+                        basicSetup={{
+                            lineNumbers: true,
+                            foldGutter: true,
+                            highlightActiveLine: true,
+                            autocompletion: true, // TODO: Enhance with custom variables source
                         }}
                     />
-                    {autocomplete && autocomplete.show && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                            {autocomplete.suggestions.map((v, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                    onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
-                                >
-                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
 
+            {currentBody.type === 'graphql' && (
+                <GraphQLEditor
+                    query={currentBody.graphql?.query || ''}
+                    variables={currentBody.graphql?.variables || ''}
+                    onQueryChange={(val) => {
+                        const newBody = { ...currentBody, graphql: { ...currentBody.graphql!, query: val } };
+                        onChange?.(newBody);
+                    }}
+                    onVariablesChange={(val) => {
+                        const newBody = { ...currentBody, graphql: { ...currentBody.graphql!, variables: val } };
+                        onChange?.(newBody);
+                    }}
+                />
+            )}
+
             {currentBody.type === 'raw' && (
-                <div className="relative border rounded-md shadow-sm bg-background flex-1 flex flex-col min-h-0">
-                    <textarea
-                        className="w-full flex-1 p-4 font-mono text-sm bg-transparent border-0 focus:outline-none resize-none no-scrollbar"
-                        placeholder="Enter raw text here..."
+                <div className="relative border rounded-md shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden bg-background">
+                    <CodeMirror
                         value={currentBody.raw || ''}
-                        onChange={(e) => handleContentChange(e.target.value)}
-                        ref={(ref) => {
-                            if (ref && autocomplete?.show) {
-                                (window as any).currentTextarea = ref;
-                            }
-                        }}
+                        height="100%"
+                        style={{ height: '100%' }}
+                        theme={appEditorTheme}
+                        onChange={handleContentChange}
+                        extensions={[EditorView.theme({ "&": { height: "100%" } })]}
+                        className="absolute inset-0 text-sm"
                     />
-                    {autocomplete && autocomplete.show && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-40 overflow-auto">
-                            {autocomplete.suggestions.map((v, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                    onClick={() => insertVariable(v.key, (window as any).currentTextarea)}
-                                >
-                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{`{{${v.key}}}`}</code>
-                                    <span className="text-muted-foreground text-xs ml-2">{v.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -252,7 +226,7 @@ const BodyEditor = ({
             )}
 
             {currentBody.type === 'binary' && (
-                <div className="flex flex-col gap-4 p-4 border rounded-md min-h-[200px] justify-center items-center bg-muted/10">
+                <div className="flex-1 flex flex-col gap-4 p-4 border rounded-md justify-center items-center bg-muted/10 min-h-0">
                     <div className="w-full max-w-md space-y-2">
                         <Label>File Path</Label>
                         <div className="flex gap-2">

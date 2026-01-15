@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreHorizontal, FileText, Pencil, Trash2, Settings, Copy, Library } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreHorizontal, FileText, Pencil, Trash2, Settings, Copy, Library, Download } from "lucide-react";
 import { Collection, RequestData, Folder as FolderType } from "@/types";
 import {
     ContextMenu,
@@ -41,6 +41,7 @@ interface ExplorerProps {
     onDeleteRequest: (id: string) => void;
     onDeleteFolder: (id: string) => void;
     onUpdateCollectionVariables: (id: string, vars: any[]) => void;
+    onImportPostman: (json: string) => void;
 }
 
 // Helper to get method badge variant (duplicated from App.tsx, could be shared util)
@@ -65,7 +66,8 @@ const Explorer = ({
     onDeleteCollection,
     onDeleteRequest,
     onDeleteFolder,
-    onUpdateCollectionVariables
+    onUpdateCollectionVariables,
+    onImportPostman
 }: ExplorerProps) => {
 
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -315,17 +317,48 @@ const Explorer = ({
 
     return (
         <div className="flex flex-col h-full bg-background/50">
-            <div className="px-4 py-3 border-b flex items-center justify-between bg-background sticky top-0 z-10 h-12">
-                <h2 className="text-[11px] font-bold uppercase text-muted-foreground tracking-[0.1em] flex items-center gap-2">
-                    <FileText className="h-3.5 w-3.5" />
+            <div className="px-3 py-2.5 border-b flex items-center justify-between bg-background sticky top-0 z-10 h-12">
+                <h2 className="text-[11px] font-bold uppercase text-muted-foreground tracking-[0.1em]">
                     Explorer
                 </h2>
-                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent" onClick={async () => {
-                    const id = await onCreateCollection();
-                    if (id) handleStartInlineEdit(id, "New Collection", 'collection');
-                }} title="New Collection">
-                    <Plus className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-0.5 bg-muted/40 rounded-md p-0.5">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-background hover:shadow-sm"
+                        onClick={async () => {
+                            const id = await onCreateCollection();
+                            if (id) handleStartInlineEdit(id, "New Collection", 'collection');
+                        }}
+                        title="New Collection"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                    <input
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        id="import-postman-explorer"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => onImportPostman(ev.target?.result as string);
+                                reader.readAsText(file);
+                                e.target.value = '';
+                            }
+                        }}
+                    />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-background hover:shadow-sm"
+                        onClick={() => document.getElementById('import-postman-explorer')?.click()}
+                        title="Import Postman Collection"
+                    >
+                        <Download className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-auto p-2 pb-10">

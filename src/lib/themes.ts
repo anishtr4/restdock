@@ -34,6 +34,11 @@ export const THEMES: Theme[] = [
             '--border': '220 13% 91%',
             '--input': '220 13% 91%',
             '--app-bg': 'radial-gradient(circle at 50% -20%, #fef3f0 0%, #fff 40%, transparent 100%)',
+            // Syntax Highlighting (Light)
+            '--token-string': '#16a34a', // green-600
+            '--token-keyword': '#ea580c', // orange-600 (matches primary somewhat)
+            '--token-number': '#2563eb', // blue-600
+            '--token-comment': '#94a3b8', // slate-400
         },
         darkVariables: {
             '--background': '220 18% 12%',
@@ -53,6 +58,11 @@ export const THEMES: Theme[] = [
             // Rust-colored orbs
             '--app-bg': 'radial-gradient(circle 200px at 30% 40%, hsl(15 90% 50% / 0.2) 0%, transparent 100%), radial-gradient(circle 250px at 75% 30%, hsl(12 85% 45% / 0.15) 0%, transparent 100%), radial-gradient(circle 180px at 50% 75%, hsl(18 90% 48% / 0.12) 0%, transparent 100%), radial-gradient(circle 150px at 15% 70%, hsl(15 80% 52% / 0.1) 0%, transparent 100%), radial-gradient(circle 220px at 85% 65%, hsl(10 85% 45% / 0.1) 0%, transparent 100%), radial-gradient(ellipse 100% 60% at 50% -20%, hsl(15 95% 48% / 0.3) 0%, transparent 60%)',
             '--app-bg-size': '100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
+            // Syntax Highlighting (Dark)
+            '--token-string': '#4ade80', // green-400
+            '--token-keyword': '#fb923c', // orange-400
+            '--token-number': '#60a5fa', // blue-400
+            '--token-comment': '#64748b', // slate-500
         }
     }
 ];

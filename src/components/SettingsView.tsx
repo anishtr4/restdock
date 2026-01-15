@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import KeyValueEditor from "./KeyValueEditor";
-import { Globe, Palette, Monitor } from "lucide-react";
+import { Globe, Palette, Monitor, Database, Download, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,9 +22,20 @@ interface SettingsViewProps {
     onGlobalVariablesChange: (vars: GlobalVar[]) => void;
     settings: AppSettings;
     onSettingsChange: (settings: AppSettings) => void;
+    onImportPostman: (json: string) => void;
+    onImportRestDock: (json: string) => void;
+    onExportRestDock: () => void;
 }
 
-const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSettingsChange }: SettingsViewProps) => {
+const SettingsView = ({
+    globalVariables,
+    onGlobalVariablesChange,
+    settings,
+    onSettingsChange,
+    onImportPostman,
+    onImportRestDock,
+    onExportRestDock
+}: SettingsViewProps) => {
     const [activeTab, setActiveTab] = useState("global");
 
     useEffect(() => {
@@ -66,6 +77,14 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                     >
                         <Monitor className="h-4 w-4" />
                         General
+                    </Button>
+                    <Button
+                        variant={activeTab === "data" ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-3"
+                        onClick={() => setActiveTab("data")}
+                    >
+                        <Database className="h-4 w-4" />
+                        Data Management
                     </Button>
                 </nav>
             </div>
@@ -245,6 +264,85 @@ const SettingsView = ({ globalVariables, onGlobalVariablesChange, settings, onSe
                                         Check for Updates
                                     </Button>
                                     <span id="update-status" className="text-sm font-medium"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === "data" && (
+                    <div className="p-6 space-y-6">
+                        <div>
+                            <h3 className="text-lg font-semibold">Data Management</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Import/Export data and backups.
+                            </p>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid gap-4 p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
+                                <div className="flex flex-col gap-1">
+                                    <h4 className="font-semibold flex items-center gap-2">
+                                        <Download className="h-4 w-4" /> Import Postman Data
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Import collections from Postman JSON export (v2.1).
+                                    </p>
+                                </div>
+                                <div>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        className="hidden"
+                                        id="import-postman"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = (ev) => onImportPostman(ev.target?.result as string);
+                                                reader.readAsText(file);
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <Button variant="outline" onClick={() => document.getElementById('import-postman')?.click()}>
+                                        Select File...
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
+                                <div className="flex flex-col gap-1">
+                                    <h4 className="font-semibold flex items-center gap-2">
+                                        <Database className="h-4 w-4" /> Backup & Restore
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Export your entire workspace (collections & environments) or restore from a backup.
+                                    </p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <Button onClick={onExportRestDock} className="gap-2">
+                                        <Upload className="h-4 w-4" /> Export Backup
+                                    </Button>
+
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        className="hidden"
+                                        id="import-restdock"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = (ev) => onImportRestDock(ev.target?.result as string);
+                                                reader.readAsText(file);
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <Button variant="secondary" onClick={() => document.getElementById('import-restdock')?.click()} className="gap-2">
+                                        <Download className="h-4 w-4" /> Restore Backup
+                                    </Button>
                                 </div>
                             </div>
                         </div>

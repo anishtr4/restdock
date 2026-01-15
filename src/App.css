@@ -61,6 +61,17 @@
     overscroll-behavior: none;
     overflow: hidden;
   }
+
+  /* Custom selection color - remove blue highlight */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+
+  ::-moz-selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
 }
 
 /* Scrollbar Utilities */

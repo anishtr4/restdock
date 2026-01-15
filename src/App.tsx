@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import "./App.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, History as HistoryIcon, Server, Plus } from "lucide-react";
+import { FolderKanban, History as HistoryIcon, Server, Plus, GripVertical } from "lucide-react";
+import { Panel, Group, Separator } from "react-resizable-panels";
 import { dbService } from "./services/db";
 import { ScrollableTabs } from "./components/ScrollableTabs";
 import { TopBar } from "./components/TopBar";
@@ -12,6 +13,7 @@ import { listen } from "@tauri-apps/api/event";
 import { LoadingFallback } from "./components/LoadingFallback";
 import { PanelSkeleton } from "./components/PanelSkeleton";
 import { UpdateChecker } from "./components/UpdateChecker";
+import { importPostmanCollection, importRestDock, exportRestDock } from "@/lib/importExport";
 
 // Lazy load heavy components
 const RequestPanel = lazy(() => import("./components/RequestPanel"));
@@ -62,6 +64,8 @@ function App() {
   activeRequestRef.current = activeRequest;
 
   const [mockLogs, setMockLogs] = useState<string[]>([]);
+  const [hasRunningMockServer, setHasRunningMockServer] = useState(false);
+  const [hasUpdateAvailable, setHasUpdateAvailable] = useState(false);
 
   // Global Mock Log Listener
   useEffect(() => {
@@ -135,7 +139,28 @@ function App() {
             id: colId,
             name: "Sample Collection",
             type: 'collection',
-            items: [],
+            items: [
+              {
+                id: `r-${Date.now()}-1`,
+                type: 'request',
+                name: "Get Users (Visualize)",
+                method: "GET",
+                url: "{{base_url}}/api/users",
+                headers: [],
+                params: [],
+                body: { type: 'none' }
+              },
+              {
+                id: `r-${Date.now()}-2`,
+                type: 'request',
+                name: "Preview HTML",
+                method: "GET",
+                url: "{{base_url}}/api/preview",
+                headers: [],
+                params: [],
+                body: { type: 'none' }
+              }
+            ],
             variables: [
               { key: "base_url", value: "http://localhost:3001", enabled: true }
             ]
@@ -396,6 +421,51 @@ function App() {
     } catch (error) {
       console.error("Failed to duplicate collection:", error);
       alert("Failed to duplicate collection. Check console for details.");
+    }
+  };
+
+  // --- Import/Export Handlers ---
+
+  const handleImportPostman = async (jsonContent: string) => {
+    try {
+      await importPostmanCollection(jsonContent);
+      // Refresh
+      const updated = await dbService.getCollections();
+      setCollections(updated);
+      alert("Postman Collection imported successfully!");
+    } catch (e) {
+      console.error(e);
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      alert("Failed to import Postman Collection: " + errorMsg);
+    }
+  };
+
+  const handleImportRestDock = async (jsonContent: string) => {
+    try {
+      await importRestDock(jsonContent);
+      const updatedCols = await dbService.getCollections();
+      setCollections(updatedCols);
+      alert("Helper: Data imported. You may need to restart or refresh to see all changes.");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to restore data: " + (e as any).message);
+    }
+  };
+
+  const handleExportRestDock = async () => {
+    try {
+      const json = await exportRestDock();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `restdock_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to export data.");
     }
   };
 
@@ -753,6 +823,7 @@ function App() {
           collections={collections}
           onSelectRequest={handleAddTab}
           isBento={isBento}
+          hasUpdateAvailable={hasUpdateAvailable}
         />
       </div>
 
@@ -767,8 +838,9 @@ function App() {
             size="icon"
             onClick={() => setActiveView("collections")}
             className="h-10 w-10"
+            title="Collections"
           >
-            <FileText className="h-5 w-5" />
+            <FolderKanban className="h-5 w-5" />
           </Button>
           <Button
             variant={activeView === "history" ? "default" : "ghost"}
@@ -782,197 +854,209 @@ function App() {
             variant={activeView === "mock_server" ? "default" : "ghost"}
             size="icon"
             onClick={() => setActiveView("mock_server")}
-            className="h-10 w-10"
+            className="h-10 w-10 relative"
+            title="Mock Server"
           >
             <Server className="h-5 w-5" />
+            {/* Green status dot - only shown when at least one server is running */}
+            {hasRunningMockServer && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-background animate-pulse" />
+            )}
           </Button>
           <div className="flex-1" />
         </div>
 
-        {/* Sidebar */}
-        {(activeView === "collections" || activeView === "history") && (
-          <div
-            className={`w-64 flex flex-col ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : 'border-r relative'}`}
-            style={!isBento ? { backgroundColor: 'var(--sidebar-bg, var(--background))', color: 'var(--sidebar-fg, var(--foreground))' } : {}}
-          >
-            {activeView === "collections" ? (
-              <Suspense fallback={<PanelSkeleton />}>
-                <Explorer
-                  collections={collections}
-                  expandedCollections={expandedCollections}
-                  onToggleCollection={toggleCollection}
-                  expandedFolders={expandedFolders}
-                  onToggleFolder={toggleFolder}
-                  onSelectRequest={handleSelectRequest}
-                  onCreateCollection={handleCreateCollection}
-                  onDuplicateCollection={handleDuplicateCollection}
-                  onCreateRequest={handleCreateRequest}
-                  onCreateFolder={handleCreateFolder}
-                  onRenameCollection={handleRenameCollection}
-                  onRenameFolder={handleRenameFolder}
-                  onRenameRequest={handleRenameRequest}
-                  onDeleteCollection={handleDeleteCollection}
-                  onDeleteRequest={handleDeleteRequest}
-                  onDeleteFolder={handleDeleteFolder}
-                  onUpdateCollectionVariables={handleUpdateCollectionVariables}
-                />
-              </Suspense>
-            ) : (
-              <>
-                <div className="p-3 border-b flex items-center justify-between">
-                  <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-                    History
-                  </h2>
-                </div>
-                <div className="flex-1 overflow-auto p-2">
-                  {history.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
-                      onClick={() => {
-                        const newRequest: RequestData = {
-                          id: `h-${Date.now()}`,
-                          name: entry.url.split('/').pop() || 'Request',
-                          method: entry.method as RequestMethod,
-                          url: entry.url,
-                          headers: [],
-                          params: []
-                        };
-                        handleAddTab(newRequest);
-                      }}
-                    >
-                      <Badge variant={getMethodVariant(entry.method)} className="text-xs px-2">
-                        {entry.method}
-                      </Badge>
-                      <span className="truncate flex-1">{entry.url}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div
-          className={`flex-1 flex flex-col min-w-0 ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : ''}`}
-          style={!isBento ? { backgroundColor: 'var(--content-bg, transparent)' } : {}}
-        >
-          {activeView === "settings" && (
-            <div className="flex-1 overflow-auto">
-              <Suspense fallback={<PanelSkeleton />}>
-                <SettingsView
-                  globalVariables={globalVariables}
-                  onGlobalVariablesChange={handleSaveGlobalVariables}
-                  settings={settings}
-                  onSettingsChange={setSettings}
-                />
-              </Suspense>
-            </div>
-          )}
-
-          {activeView === "mock_server" && (
-            <div className="flex-1 overflow-auto">
-              <Suspense fallback={<PanelSkeleton />}>
-                <MockServerView
-                  logs={mockLogs}
-                  setLogs={setMockLogs}
-                />
-              </Suspense>
-            </div>
-          )}
-
+        {/* Resizable Layout: Sidebar + Main Content */}
+        <Group orientation="horizontal" id="app-layout">
           {(activeView === "collections" || activeView === "history") && (
             <>
-              {tabs.length > 0 ? (
-                <>
-                  {/* Tab Bar */}
-                  <ScrollableTabs
-                    tabs={tabs}
-                    activeTabId={activeTabId}
-                    onTabSelect={setActiveTabId}
-                    onTabClose={handleCloseTab}
-                    onTabAdd={() => handleAddTab()}
-                  />
-
-                  {/* Request/Response Area */}
-                  <div className="flex-1 flex flex-col min-h-0">
-                    <div className="flex-1 border-b overflow-hidden flex flex-col">
-                      <Suspense fallback={<PanelSkeleton />}>
-                        {activeRequest ? (
-                          <RequestPanel
-                            request={activeRequest}
-                            setRequest={(newRequest: RequestData | null) => {
-                              setActiveRequest(newRequest);
-                              if (newRequest && activeTabId) {
-                                tabRequestCache.current.set(activeTabId, newRequest);
-                              }
-                            }}
-                            setResponse={(newResponse: any) => {
-                              setResponse(newResponse);
-                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
-                            }}
-                            setLoading={(isLoading: boolean) => {
-                              setLoading(isLoading);
-                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
-                            }}
-                            onSave={handleSaveRequest}
-                            onHistoryAdd={async (entry: any) => {
-                              const newEntry = {
-                                id: `h-${Date.now()}`,
-                                method: entry.method,
-                                url: entry.url,
-                                timestamp: Date.now(),
-                                status: entry.status
-                              };
-                              await dbService.addToHistory(newEntry);
-                              setHistory(prev => [newEntry, ...prev]);
-                            }}
-                            collectionVariables={[
-                              ...(collections[0]?.variables || []),
-                              ...(globalVariables || []),
-                              ...(globalVariables || []).map(v => ({ ...v, key: `global.${v.key}` }))
-                            ]}
-                            settings={settings}
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">
-                            Select a request to start
-                          </div>
-                        )}
-                      </Suspense>
+              <Panel defaultSize="20" minSize={250} maxSize="40" className={`flex flex-col ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : 'border-r relative'}`}
+                style={!isBento ? { backgroundColor: 'var(--sidebar-bg, var(--background))', color: 'var(--sidebar-fg, var(--foreground))' } : {}}
+              >
+                {activeView === "collections" ? (
+                  <Suspense fallback={<PanelSkeleton />}>
+                    <Explorer
+                      collections={collections}
+                      expandedCollections={expandedCollections}
+                      onToggleCollection={toggleCollection}
+                      expandedFolders={expandedFolders}
+                      onToggleFolder={toggleFolder}
+                      onSelectRequest={handleSelectRequest}
+                      onCreateCollection={handleCreateCollection}
+                      onDuplicateCollection={handleDuplicateCollection}
+                      onCreateRequest={handleCreateRequest}
+                      onCreateFolder={handleCreateFolder}
+                      onRenameCollection={handleRenameCollection}
+                      onRenameFolder={handleRenameFolder}
+                      onRenameRequest={handleRenameRequest}
+                      onDeleteCollection={handleDeleteCollection}
+                      onDeleteRequest={handleDeleteRequest}
+                      onDeleteFolder={handleDeleteFolder}
+                      onUpdateCollectionVariables={handleUpdateCollectionVariables}
+                      onImportPostman={handleImportPostman}
+                    />
+                  </Suspense>
+                ) : (
+                  <>
+                    <div className="p-3 border-b flex items-center justify-between">
+                      <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+                        History
+                      </h2>
                     </div>
-                    <div className="h-80 overflow-auto">
-                      <Suspense fallback={<PanelSkeleton />}>
-                        <ResponsePanel response={response} loading={loading} />
-                      </Suspense>
+                    <div className="flex-1 overflow-auto p-2">
+                      {history.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-md cursor-pointer text-sm"
+                          onClick={() => {
+                            const newRequest: RequestData = {
+                              id: `h-${Date.now()}`,
+                              name: entry.url.split('/').pop() || 'Request',
+                              method: entry.method as RequestMethod,
+                              url: entry.url,
+                              headers: [],
+                              params: []
+                            };
+                            handleAddTab(newRequest);
+                          }}
+                        >
+                          <Badge variant={getMethodVariant(entry.method)} className="text-xs px-2">
+                            {entry.method}
+                          </Badge>
+                          <span className="truncate flex-1">{entry.url}</span>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                </>
-              ) : (
-                /* Empty State - No tabs open */
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-48 h-48 rounded-full bg-muted/30 flex items-center justify-center mb-8">
-                    <svg className="w-24 h-24 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M12 20l9-5-9-5-9 5 9 5z" />
-                      <path d="M12 12l9-5-9-5-9 5 9 5z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-foreground mb-2">No requests open</h2>
-                  <p className="text-muted-foreground mb-6">Create a new request to get started</p>
-                  <Button
-                    onClick={() => handleAddTab()}
-                    className="gap-2"
-                    size="lg"
-                  >
-                    <Plus className="w-5 h-5" />
-                    New Request
-                  </Button>
-                </div>
-              )}
+                  </>
+                )}
+              </Panel>
+              <Separator className="w-1 bg-border/40 hover:bg-primary/50 transition-colors flex items-center justify-center group cursor-col-resize z-10 focus:outline-none">
+                <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Separator>
             </>
           )}
-        </div>
+
+          {/* Main Content */}
+          <Panel minSize={300} className={`flex flex-col min-w-0 ${isBento ? 'rounded-xl glass-panel shadow-lg overflow-hidden' : ''}`}
+            style={!isBento ? { backgroundColor: 'var(--content-bg, transparent)' } : {}}
+          >
+            {activeView === "settings" && (
+              <div className="flex-1 overflow-auto">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <SettingsView
+                    globalVariables={globalVariables}
+                    onGlobalVariablesChange={handleSaveGlobalVariables}
+                    settings={settings}
+                    onSettingsChange={setSettings}
+                    onImportPostman={handleImportPostman}
+                    onImportRestDock={handleImportRestDock}
+                    onExportRestDock={handleExportRestDock}
+                  />
+                </Suspense>
+              </div>
+            )}
+
+            {activeView === "mock_server" && (
+              <div className="flex-1 overflow-auto">
+                <Suspense fallback={<PanelSkeleton />}>
+                  <MockServerView
+                    logs={mockLogs}
+                    setLogs={setMockLogs}
+                    onServerStatusChange={setHasRunningMockServer}
+                  />
+                </Suspense>
+              </div>
+            )}
+
+            {(activeView === "collections" || activeView === "history") && (
+              <>
+                {tabs.length > 0 ? (
+                  <>
+                    {/* Tab Bar */}
+                    <ScrollableTabs
+                      tabs={tabs}
+                      activeTabId={activeTabId}
+                      onTabSelect={setActiveTabId}
+                      onTabClose={handleCloseTab}
+                      onTabAdd={() => handleAddTab()}
+                    />
+
+                    {/* Request/Response Area */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="flex-1 border-b overflow-hidden flex flex-col">
+                        <Suspense fallback={<PanelSkeleton />}>
+                          {activeRequest ? (
+                            <RequestPanel
+                              request={activeRequest}
+                              setRequest={(newRequest: RequestData | null) => {
+                                setActiveRequest(newRequest);
+                                if (newRequest && activeTabId) {
+                                  tabRequestCache.current.set(activeTabId, newRequest);
+                                }
+                              }}
+                              setResponse={(newResponse: any) => {
+                                setResponse(newResponse);
+                                setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, response: newResponse } : t));
+                              }}
+                              setLoading={(isLoading: boolean) => {
+                                setLoading(isLoading);
+                                setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, loading: isLoading } : t));
+                              }}
+                              onSave={handleSaveRequest}
+                              onHistoryAdd={async (entry: any) => {
+                                const newEntry = {
+                                  id: `h-${Date.now()}`,
+                                  method: entry.method,
+                                  url: entry.url,
+                                  timestamp: Date.now(),
+                                  status: entry.status
+                                };
+                                await dbService.addToHistory(newEntry);
+                                setHistory(prev => [newEntry, ...prev]);
+                              }}
+                              globalVariables={globalVariables || []}
+                              collectionVariables={collections[0]?.variables || []}
+                              settings={settings}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              Select a request to start
+                            </div>
+                          )}
+                        </Suspense>
+                      </div>
+                      <div className="h-80 overflow-auto">
+                        <Suspense fallback={<PanelSkeleton />}>
+                          <ResponsePanel response={response} loading={loading} />
+                        </Suspense>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Empty State - No tabs open */
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-48 h-48 rounded-full bg-muted/30 flex items-center justify-center mb-8">
+                      <svg className="w-24 h-24 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M12 20l9-5-9-5-9 5 9 5z" />
+                        <path d="M12 12l9-5-9-5-9 5 9 5z" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold text-foreground mb-2">No requests open</h2>
+                    <p className="text-muted-foreground mb-6">Create a new request to get started</p>
+                    <Button
+                      onClick={() => handleAddTab()}
+                      className="gap-2"
+                      size="lg"
+                    >
+                      <Plus className="w-5 h-5" />
+                      New Request
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </Panel>
+        </Group>
       </div>
       <SaveRequestDialog
         open={saveDialogState.open}
@@ -981,7 +1065,7 @@ function App() {
         onSave={handleDialogSave}
         initialName={saveDialogState.requestName}
       />
-      <UpdateChecker />
+      <UpdateChecker onUpdateAvailable={setHasUpdateAvailable} />
     </div>
   );
 }
