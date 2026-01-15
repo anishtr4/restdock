@@ -141,27 +141,27 @@ export const LoadingFallback = () => {
                 <div className="relative mb-8">
                     <div className="w-32 h-32 relative z-10">
                         <img
-                            src="/logo.png"
+                            src="/icon.png"
                             alt="RestDock Logo"
                             className={`w-full h-full object-contain transition-all duration-150 ${strike
-                                    ? 'brightness-[2.5] saturate-150 drop-shadow-[0_0_50px_rgba(251,191,36,1)] scale-125'
-                                    : 'brightness-100 scale-100'
+                                ? 'brightness-[2.5] saturate-150 drop-shadow-[0_0_50px_rgba(251,191,36,1)] scale-125'
+                                : 'brightness-100 scale-100'
                                 }`}
                         />
                     </div>
 
                     <div
                         className={`absolute inset-0 blur-3xl rounded-full z-0 transition-all ${strike
-                                ? 'bg-yellow-400/90 opacity-100 scale-[3.5] duration-150'
-                                : 'bg-primary/20 opacity-50 scale-150 duration-500'
+                            ? 'bg-yellow-400/90 opacity-100 scale-[3.5] duration-150'
+                            : 'bg-primary/20 opacity-50 scale-150 duration-500'
                             }`}
                     />
                 </div>
 
                 <div className="flex flex-col items-center gap-3">
                     <h1 className={`text-3xl font-bold tracking-tight font-sans transition-all duration-150 ${strike
-                            ? 'text-yellow-400 drop-shadow-[0_0_25px_rgba(251,191,36,1)] scale-110'
-                            : 'text-foreground/90 scale-100'
+                        ? 'text-yellow-400 drop-shadow-[0_0_25px_rgba(251,191,36,1)] scale-110'
+                        : 'text-foreground/90 scale-100'
                         }`}>
                         RestDock
                     </h1>
