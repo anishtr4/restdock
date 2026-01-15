@@ -84,7 +84,6 @@ const RequestPanel = ({
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [autocomplete]);
-    const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [showCodeDialog, setShowCodeDialog] = useState(false);
     const [activeTab, setActiveTab] = useState('params');
     const methods: RequestMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];

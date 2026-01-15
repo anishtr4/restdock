@@ -214,9 +214,6 @@ const SettingsView = ({
                                     <p className="text-xs text-muted-foreground">
                                         Automatically follow HTTP 3xx redirect responses.
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Automatically follow HTTP 3xx redirect responses.
-                                    </p>
                                 </div>
                             </div>
 
@@ -278,7 +275,7 @@ const SettingsView = ({
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-mono font-medium">v1.1.1</p>
+                                            <p className="text-sm font-mono font-medium">v1.1.2</p>
                                             <p className="text-xs text-muted-foreground">Version</p>
                                         </div>
                                     </div>

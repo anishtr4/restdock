@@ -19,6 +19,7 @@ const GraphQLEditor = ({
 }: GraphQLEditorProps) => {
     return (
         <div className="h-full flex flex-col">
+            {/* @ts-ignore - ResizablePanelGroup direction prop type issue */}
             <ResizablePanelGroup direction="vertical" className="h-full border rounded-md">
                 <ResizablePanel defaultSize={70} minSize={30}>
                     <div className="h-full flex flex-col bg-background">

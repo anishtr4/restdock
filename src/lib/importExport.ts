@@ -1,4 +1,4 @@
-import { Collection, RequestData, Folder, Environment, RequestMethod } from "@/types";
+import { Collection, RequestData, Folder, RequestMethod } from "@/types";
 import { dbService } from "@/services/db";
 
 // Types for Postman JSON (simplified)
@@ -238,7 +238,7 @@ export const importPostmanCollection = async (jsonContent: string): Promise<Coll
 
                 // Map Auth details (reuse logic)
                 if (requestData.auth && requestData.auth.type !== 'none') {
-                    const authSource = requestData.auth;
+                    const authSource: any = requestData.auth; // Use any for Postman compatibility
                     // ... Need to simplify auth mapping logic or duplicate it slightly modified ...
                     // Let's reuse the existing mapping logic but adapted
                     if (authSource.type === 'bearer') {
@@ -251,12 +251,14 @@ export const importPostmanCollection = async (jsonContent: string): Promise<Coll
                         const password = basicArray.find((x: any) => x.key === 'password')?.value;
                         requestData.auth = { type: 'basic', basic: { username, password } };
                     } else if (authSource.type === 'apikey') {
+                        // Postman uses 'apikey' but we use 'apiKey'
                         const apikeyArray = Array.isArray(authSource.apikey) ? authSource.apikey : [];
                         const key = apikeyArray.find((x: any) => x.key === 'key')?.value;
                         const value = apikeyArray.find((x: any) => x.key === 'value')?.value;
                         const addTo = apikeyArray.find((x: any) => x.key === 'in')?.value || 'header';
                         requestData.auth = { type: 'apiKey', apiKey: { key, value, addTo } };
                     } else if (authSource.type === 'noauth') {
+                        // Postman uses 'noauth' but we use 'none'
                         requestData.auth = { type: 'none' };
                     }
                 }
