@@ -1,141 +1,241 @@
 import { useEffect, useState } from 'react';
 
 export const LoadingFallback = () => {
-    const [flash, setFlash] = useState(false);
+    const [strike, setStrike] = useState(false);
 
     useEffect(() => {
-        // Create random thunder flashes
-        const flashInterval = setInterval(() => {
-            setFlash(true);
-            setTimeout(() => setFlash(false), 100);
-        }, 1500 + Math.random() * 1000); // Random interval between 1.5-2.5s
+        // Thunder strike every 2-3 seconds
+        const strikeInterval = setInterval(() => {
+            setStrike(true);
+            setTimeout(() => setStrike(false), 600); // Strike lasts 600ms
+        }, 2000 + Math.random() * 1000);
 
-        return () => clearInterval(flashInterval);
+        return () => clearInterval(strikeInterval);
     }, []);
 
     return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-background select-none z-50 fixed inset-0 overflow-hidden">
-            {/* Thunder Flash Effect */}
+            {/* Thunder Strike Lightning Bolt */}
+            {strike && (
+                <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none z-30"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="xMidYMid slice"
+                >
+                    <defs>
+                        <linearGradient id="lightning-strike" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#60a5fa" stopOpacity="1" />
+                            <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.9" />
+                            <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.8" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    {/* Main lightning bolt striking down */}
+                    <path
+                        d="M 48 0 L 50 20 L 47 20 L 52 40 L 48 40 L 54 65 L 49 65 L 50 100"
+                        stroke="url(#lightning-strike)"
+                        strokeWidth="1.5"
+                        fill="none"
+                        filter="url(#glow)"
+                        className="animate-[lightning-strike_0.3s_ease-out]"
+                        strokeLinecap="round"
+                        style={{
+                            opacity: 0.95,
+                        }}
+                    />
+
+                    {/* Secondary branch */}
+                    <path
+                        d="M 50 35 L 45 50 L 40 65"
+                        stroke="url(#lightning-strike)"
+                        strokeWidth="1"
+                        fill="none"
+                        filter="url(#glow)"
+                        className="animate-[lightning-strike_0.3s_ease-out_0.05s]"
+                        strokeLinecap="round"
+                        style={{
+                            opacity: 0.7,
+                        }}
+                    />
+
+                    {/* Third branch */}
+                    <path
+                        d="M 52 30 L 57 45 L 60 55"
+                        stroke="url(#lightning-strike)"
+                        strokeWidth="0.8"
+                        fill="none"
+                        filter="url(#glow)"
+                        className="animate-[lightning-strike_0.3s_ease-out_0.08s]"
+                        strokeLinecap="round"
+                        style={{
+                            opacity: 0.6,
+                        }}
+                    />
+                </svg>
+            )}
+
+            {/* Bright Screen Flash on Strike */}
             <div
-                className={`absolute inset-0 pointer-events-none transition-opacity duration-100 ${flash ? 'opacity-30' : 'opacity-0'
+                className={`absolute inset-0 pointer-events-none transition-opacity z-20 ${strike ? 'opacity-40 duration-100' : 'opacity-0 duration-300'
                     }`}
                 style={{
-                    background: 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.4) 0%, transparent 60%)'
+                    background: 'radial-gradient(ellipse at 50% 70%, rgba(147, 197, 253, 0.6) 0%, rgba(96, 165, 250, 0.3) 30%, transparent 70%)'
                 }}
             />
 
-            {/* Animated Lightning Bolts in Background */}
-            <svg
-                className="absolute inset-0 w-full h-full pointer-events-none opacity-20"
-                style={{ filter: 'blur(1px)' }}
-            >
-                <defs>
-                    <linearGradient id="lightning-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="rgb(96, 165, 250)" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="rgb(59, 130, 246)" stopOpacity="0.2" />
-                    </linearGradient>
-                </defs>
+            {/* Ground Impact Effect */}
+            {strike && (
+                <>
+                    {/* Impact flash at logo */}
+                    <div
+                        className="absolute z-25 pointer-events-none"
+                        style={{
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '200px',
+                            height: '200px',
+                        }}
+                    >
+                        <div className="w-full h-full bg-blue-400/40 rounded-full blur-3xl animate-ping" style={{ animationDuration: '0.6s' }} />
+                    </div>
 
-                {/* Lightning bolt path 1 */}
-                <path
-                    d="M 30 0 L 35 40 L 25 40 L 32 80 L 22 70 L 28 100"
-                    stroke="url(#lightning-gradient)"
-                    strokeWidth="2"
-                    fill="none"
-                    className="animate-pulse"
-                    style={{
-                        opacity: flash ? 0.8 : 0.1,
-                        transition: 'opacity 0.1s ease-out',
-                        animationDuration: '2s'
-                    }}
-                />
+                    {/* Electric sparks radiating from impact */}
+                    {[...Array(12)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute z-25 pointer-events-none"
+                            style={{
+                                top: '50%',
+                                left: '50%',
+                                width: '3px',
+                                height: `${20 + Math.random() * 30}px`,
+                                background: 'linear-gradient(to bottom, #60a5fa, transparent)',
+                                transform: `translate(-50%, -50%) rotate(${i * 30}deg) translateY(-60px)`,
+                                opacity: 0.8,
+                                animation: 'spark-fade 0.4s ease-out forwards'
+                            }}
+                        />
+                    ))}
 
-                {/* Lightning bolt path 2 */}
-                <path
-                    d="M calc(100% - 30px) 0 L calc(100% - 35px) 50 L calc(100% - 25px) 50 L calc(100% - 32px) 100 L calc(100% - 22px) 90 L calc(100% - 28px) 120"
-                    stroke="url(#lightning-gradient)"
-                    strokeWidth="2"
-                    fill="none"
-                    className="animate-pulse"
-                    style={{
-                        opacity: flash ? 0.8 : 0.1,
-                        transition: 'opacity 0.1s ease-out',
-                        animationDuration: '2.5s',
-                        animationDelay: '0.5s'
-                    }}
-                />
-            </svg>
+                    {/* Ground shockwave */}
+                    <div
+                        className="absolute pointer-events-none z-25"
+                        style={{
+                            top: '55%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '300px',
+                            height: '10px',
+                            background: 'radial-gradient(ellipse, rgba(96, 165, 250, 0.6) 0%, transparent 70%)',
+                            borderRadius: '50%',
+                            animation: 'shockwave 0.6s ease-out forwards'
+                        }}
+                    />
+                </>
+            )}
 
             <div className="flex flex-col items-center justify-center animate-fade-in relative z-10">
                 <div className="relative mb-8">
-                    {/* Logo with Thunder Glow Effect */}
+                    {/* Logo with Strike Effect */}
                     <div className="w-32 h-32 relative z-10">
                         <img
                             src="/logo.png"
                             alt="RestDock Logo"
-                            className={`w-full h-full object-contain transition-all duration-100 ${flash ? 'brightness-125 drop-shadow-[0_0_20px_rgba(96,165,250,0.8)]' : 'brightness-100'
+                            className={`w-full h-full object-contain transition-all duration-100 ${strike
+                                    ? 'brightness-150 saturate-150 drop-shadow-[0_0_30px_rgba(59,130,246,1)]'
+                                    : 'brightness-100'
                                 }`}
                         />
                     </div>
 
-                    {/* Dynamic Backlight with Flash Effect */}
+                    {/* Dynamic Backlight */}
                     <div
-                        className={`absolute inset-0 blur-3xl rounded-full scale-150 z-0 transition-all duration-100 ${flash
-                                ? 'bg-blue-400/60 opacity-80 scale-[2]'
-                                : 'bg-primary/20 opacity-50 scale-150'
+                        className={`absolute inset-0 blur-3xl rounded-full z-0 transition-all ${strike
+                                ? 'bg-blue-500/80 opacity-90 scale-[2.5] duration-100'
+                                : 'bg-primary/20 opacity-50 scale-150 duration-500'
                             }`}
                     />
-
-                    {/* Electric Arc Effect */}
-                    {flash && (
-                        <div className="absolute inset-0 z-20">
-                            <div className="absolute top-0 left-1/2 w-1 h-full bg-gradient-to-b from-blue-400 via-blue-300 to-transparent opacity-60 blur-sm animate-ping"
-                                style={{ animationDuration: '0.3s', transform: 'translateX(-50%) rotate(10deg)' }} />
-                            <div className="absolute top-0 left-1/2 w-1 h-full bg-gradient-to-b from-blue-400 via-blue-300 to-transparent opacity-60 blur-sm animate-ping"
-                                style={{ animationDuration: '0.3s', transform: 'translateX(-50%) rotate(-10deg)' }} />
-                        </div>
-                    )}
                 </div>
 
                 <div className="flex flex-col items-center gap-3">
-                    <h1 className={`text-3xl font-bold tracking-tight font-sans transition-all duration-100 ${flash ? 'text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'text-foreground/90'
+                    <h1 className={`text-3xl font-bold tracking-tight font-sans transition-all duration-100 ${strike
+                            ? 'text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.8)] scale-105'
+                            : 'text-foreground/90 scale-100'
                         }`}>
                         RestDock
                     </h1>
 
                     {/* Thunder-Themed Progress Bar */}
                     <div className="h-1 w-32 bg-secondary/50 rounded-full overflow-hidden mt-2 relative">
-                        <div className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 origin-left animate-[grow_1.5s_ease-out_forwards] w-full" />
-                        {flash && (
-                            <div className="absolute inset-0 bg-blue-300/50 animate-pulse" style={{ animationDuration: '0.3s' }} />
+                        <div className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 origin-left animate-[grow_1.5s_ease-out_forwards] w-full" />
+                        {strike && (
+                            <div className="absolute inset-0 bg-blue-300/70 animate-pulse" style={{ animationDuration: '0.3s' }} />
                         )}
                     </div>
 
-                    <p className={`text-xs text-muted-foreground mt-1 transition-opacity duration-100 ${flash ? 'opacity-100' : 'opacity-60'
+                    <p className={`text-xs font-mono mt-1 transition-all duration-100 ${strike ? 'text-blue-400 opacity-100' : 'text-muted-foreground opacity-60'
                         }`}>
-                        Powering up...
+                        ⚡ Powering up...
                     </p>
                 </div>
             </div>
 
-            {/* Particle Effect on Flash */}
-            {flash && (
-                <div className="absolute inset-0 pointer-events-none">
-                    {[...Array(8)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute w-1 h-1 bg-blue-400 rounded-full animate-ping"
-                            style={{
-                                top: '50%',
-                                left: '50%',
-                                animationDuration: '0.5s',
-                                transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-${50 + i * 10}px)`,
-                                opacity: 0.6
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
+            <style>{`
+                @keyframes lightning-strike {
+                    0% {
+                        stroke-dasharray: 200;
+                        stroke-dashoffset: 200;
+                        opacity: 0;
+                    }
+                    20% {
+                        opacity: 1;
+                    }
+                    100% {
+                        stroke-dasharray: 200;
+                        stroke-dashoffset: 0;
+                        opacity: 0.9;
+                    }
+                }
+                
+                @keyframes spark-fade {
+                    0% {
+                        opacity: 0.8;
+                        transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) translateY(-60px) scale(1);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) translateY(-80px) scale(0.5);
+                    }
+                }
+                
+                @keyframes shockwave {
+                    0% {
+                        width: 100px;
+                        opacity: 0.8;
+                    }
+                    100% {
+                        width: 400px;
+                        opacity: 0;
+                    }
+                }
+                
+                @keyframes grow {
+                    from {
+                        transform: scaleX(0);
+                    }
+                    to {
+                        transform: scaleX(1);
+                    }
+                }
+            `}</style>
         </div>
     );
 };
