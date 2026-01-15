@@ -65,7 +65,7 @@ export const LoadingFallback = () => {
                     {/* Icon */}
                     <div className={`relative w-32 h-32 transition-all duration-300 ${strike ? 'scale-105 brightness-110 dark:brightness-125' : 'scale-100'}`}>
                         <img
-                            src="/icon.png?v=2"
+                            src="/icon.png?v=3"
                             alt="RestDock"
                             className="w-full h-full object-contain drop-shadow-xl dark:drop-shadow-2xl rounded-2xl"
                         />
