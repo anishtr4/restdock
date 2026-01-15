@@ -125,7 +125,7 @@ export function TopBar({ onSettingsClick, collections, onSelectRequest, isBento 
         <div className={cn("h-12 flex items-center px-4 justify-between select-none z-50 relative", !isBento && "border-b bg-background")}>
             {/* Left Section: Logo */}
             <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="Logo" className="w-7 h-7 rounded-[7px] shadow-sm" />
+                <img src="/icon.png?v=3" alt="Logo" className="w-7 h-7 rounded-[7px] shadow-sm" />
                 <span className="font-semibold text-[15px] tracking-tight text-foreground/90">RestDock</span>
             </div>
 
