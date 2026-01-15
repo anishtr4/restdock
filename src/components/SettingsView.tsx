@@ -271,7 +271,7 @@ const SettingsView = ({
                                         <div className="flex flex-col gap-1">
                                             <h4 className="font-semibold">RestDock</h4>
                                             <p className="text-sm text-muted-foreground">
-                                                A modern, fast REST API client built with Tauri
+                                                A modern, fast REST API client
                                             </p>
                                         </div>
                                         <div className="text-right">
