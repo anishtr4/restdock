@@ -2,246 +2,122 @@ import { useEffect, useState } from 'react';
 
 export const LoadingFallback = () => {
     const [strike, setStrike] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     useEffect(() => {
-        // Thunder strike every 2 seconds
+        // Dramatic lightning strike loop
         const strikeInterval = setInterval(() => {
             setStrike(true);
-            setTimeout(() => setStrike(false), 600);
-        }, 2000);
+            setTimeout(() => setStrike(false), 200); // Quick, sharp flash
+        }, 3500);
 
-        return () => clearInterval(strikeInterval);
+        // Simulated loading progress
+        const progressInterval = setInterval(() => {
+            setProgress(prev => Math.min(prev + Math.random() * 5, 100));
+        }, 150);
+
+        return () => {
+            clearInterval(strikeInterval);
+            clearInterval(progressInterval);
+        };
     }, []);
 
     return (
-        <div className="h-screen w-screen flex flex-col items-center justify-center bg-background select-none z-50 fixed inset-0 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background text-foreground overflow-hidden selection:bg-cyan-500/30">
 
-            {/* BRIGHT YELLOW LIGHTNING BOLT FROM SKY */}
+            {/* AMBIENT BACKGROUND EFFECTS */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {/* Gradient glow - subtle blue in light, deep blue in dark */}
+                <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-blue-100/50 to-transparent dark:from-blue-900/20 dark:to-transparent opacity-50" />
+
+                {/* Subtle grid pattern - adaptive opacity */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.03] bg-[length:40px_40px]"
+                    style={{
+                        backgroundImage: `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`
+                    }}
+                />
+            </div>
+
+            {/* LIGHTNING STRIKE ANIMATION */}
             {strike && (
                 <>
-                    {/* Main vertical lightning bolt - VERY VISIBLE */}
-                    <div
-                        className="absolute z-50"
-                        style={{
-                            top: '0px',
-                            left: '50%',
-                            width: '12px',
-                            height: '50%',
-                            marginLeft: '-6px',
-                            background: 'linear-gradient(180deg, #fbbf24 0%, #fef08a 30%, #fbbf24 60%, #3b82f6 100%)',
-                            boxShadow: `
-                                0 0 30px 10px rgba(251, 191, 36, 0.9),
-                                0 0 60px 20px rgba(250, 204, 21, 0.6),
-                                0 0 90px 30px rgba(96, 165, 250, 0.4)
-                            `,
-                            filter: 'brightness(2)',
-                            animation: 'lightning-strike 0.4s ease-out',
-                        }}
-                    />
+                    {/* Main Bolt - Yellow/Gold in both modes */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-2 h-[45vh] bg-yellow-500 dark:bg-yellow-300 shadow-[0_0_30px_5px_rgba(234,179,8,0.5)] dark:shadow-[0_0_50px_15px_rgba(250,204,21,0.6)] origin-top animate-strike-down" />
 
-                    {/* Left branch */}
-                    <div
-                        className="absolute z-50"
-                        style={{
-                            top: '20%',
-                            left: '50%',
-                            width: '50px',
-                            height: '8px',
-                            marginLeft: '-50px',
-                            background: 'linear-gradient(90deg, transparent, #fbbf24)',
-                            boxShadow: '0 0 20px 6px rgba(251, 191, 36, 0.8)',
-                            filter: 'brightness(2)',
-                            transform: 'rotate(-30deg)',
-                            transformOrigin: 'right center',
-                            animation: 'lightning-strike 0.4s ease-out 0.1s backwards',
-                        }}
-                    />
+                    {/* Screen Flash Overlay - Warm flash */}
+                    <div className="absolute inset-0 bg-yellow-100/40 dark:bg-yellow-100/10 z-50 pointer-events-none animate-flash-fade" />
 
-                    {/* Right branch */}
-                    <div
-                        className="absolute z-50"
-                        style={{
-                            top: '35%',
-                            left: '50%',
-                            width: '40px',
-                            height: '8px',
-                            background: 'linear-gradient(90deg, #fbbf24, transparent)',
-                            boxShadow: '0 0 20px 6px rgba(251, 191, 36, 0.8)',
-                            filter: 'brightness(2)',
-                            transform: 'rotate(25deg)',
-                            transformOrigin: 'left center',
-                            animation: 'lightning-strike 0.4s ease-out 0.15s backwards',
-                        }}
-                    />
+                    {/* Impact Burst at Center */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                        <div className="w-[300px] h-[300px] bg-yellow-500/20 dark:bg-yellow-400/30 rounded-full blur-[80px] animate-pulse-fast" />
+                    </div>
                 </>
             )}
 
-            {/* Bright Screen Flash */}
-            <div
-                className={`absolute inset-0 pointer-events-none z-40 transition-all ${strike ? 'opacity-60 duration-100' : 'opacity-0 duration-300'
-                    }`}
-                style={{
-                    background: 'radial-gradient(ellipse at 50% 40%, rgba(251, 191, 36, 0.5) 0%, rgba(250, 204, 21, 0.3) 30%, rgba(96, 165, 250, 0.2) 50%, transparent 80%)'
-                }}
-            />
+            {/* MAIN CONTENT CONTAINER */}
+            <div className="relative z-40 flex flex-col items-center">
 
-            {/* Impact Effects */}
-            {strike && (
-                <div className="absolute z-45" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                    {/* Bright impact flash */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '-125px',
-                            left: '-125px',
-                            width: '250px',
-                            height: '250px',
-                            background: 'radial-gradient(circle, rgba(251, 191, 36, 0.9) 0%, rgba(96, 165, 250, 0.5) 50%, transparent 80%)',
-                            animation: 'impact-pulse 0.6s ease-out',
-                        }}
-                    />
+                {/* LOGO CONTAINER */}
+                <div className="relative mb-12">
+                    {/* Glowing ring behind logo */}
+                    <div className="absolute inset-0 rounded-3xl bg-yellow-500/10 dark:bg-yellow-500/20 blur-xl scale-90 animate-pulse-slow" />
 
-                    {/* Electric sparks */}
-                    {[...Array(16)].map((_, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                position: 'absolute',
-                                width: '6px',
-                                height: '40px',
-                                left: '-3px',
-                                top: '-20px',
-                                background: 'linear-gradient(180deg, #fbbf24, #fef08a, transparent)',
-                                boxShadow: '0 0 10px 3px rgba(251, 191, 36, 0.8)',
-                                transform: `rotate(${i * 22.5}deg) translateY(-70px)`,
-                                transformOrigin: 'center',
-                                animation: 'spark-fade 0.5s ease-out forwards',
-                            }}
-                        />
-                    ))}
-
-                    {/* Ground impact wave */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            bottom: '-80px',
-                            left: '-100px',
-                            width: '200px',
-                            height: '30px',
-                            background: 'radial-gradient(ellipse, rgba(251, 191, 36, 0.9) 0%, rgba(251, 191, 36, 0.5) 40%, transparent 70%)',
-                            borderRadius: '50%',
-                            animation: 'shockwave 0.7s ease-out forwards',
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Logo and Content */}
-            <div className="flex flex-col items-center justify-center relative z-30">
-                <div className="relative mb-8">
-                    <div className="w-32 h-32 relative z-10">
+                    {/* Icon */}
+                    <div className={`relative w-32 h-32 transition-all duration-300 ${strike ? 'scale-105 brightness-110 dark:brightness-125' : 'scale-100'}`}>
                         <img
-                            src="/icon.png"
-                            alt="RestDock Logo"
-                            className={`w-full h-full object-contain transition-all duration-150 ${strike
-                                ? 'brightness-[2.5] saturate-150 drop-shadow-[0_0_50px_rgba(251,191,36,1)] scale-125'
-                                : 'brightness-100 scale-100'
-                                }`}
+                            src="/icon.png?v=2"
+                            alt="RestDock"
+                            className="w-full h-full object-contain drop-shadow-xl dark:drop-shadow-2xl rounded-2xl"
                         />
-                    </div>
 
-                    <div
-                        className={`absolute inset-0 blur-3xl rounded-full z-0 transition-all ${strike
-                            ? 'bg-yellow-400/90 opacity-100 scale-[3.5] duration-150'
-                            : 'bg-primary/20 opacity-50 scale-150 duration-500'
-                            }`}
-                    />
+                        {/* Electric Arcs on Logo (CSS generated) */}
+                        <div className="absolute -inset-4 border border-yellow-400/30 dark:border-yellow-400/30 rounded-[2rem] opacity-0 animate-spin-slow group-hover:opacity-100" />
+                    </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-3">
-                    <h1 className={`text-3xl font-bold tracking-tight font-sans transition-all duration-150 ${strike
-                        ? 'text-yellow-400 drop-shadow-[0_0_25px_rgba(251,191,36,1)] scale-110'
-                        : 'text-foreground/90 scale-100'
-                        }`}>
-                        RestDock
-                    </h1>
+                {/* APP NAME */}
+                <h1 className="text-4xl font-bold tracking-tight mb-2 font-display text-foreground">
+                    Rest<span className="text-yellow-600 dark:text-yellow-400">Dock</span>
+                </h1>
 
-                    <div className="h-1 w-32 bg-secondary/50 rounded-full overflow-hidden mt-2 relative">
-                        <div className="h-full bg-gradient-to-r from-yellow-500 via-yellow-300 to-yellow-500 origin-left animate-[grow_1.8s_ease-out_forwards] w-full" />
-                        {strike && (
-                            <div className="absolute inset-0 bg-yellow-200/90 animate-pulse" style={{ animationDuration: '0.3s' }} />
-                        )}
-                    </div>
+                {/* SUBTITLE */}
+                <p className="text-muted-foreground text-sm tracking-widest uppercase mb-8 opacity-80">
+                    Initializing Environment
+                </p>
 
-                    <p className={`text-sm font-bold mt-1 transition-all duration-150 tracking-wider ${strike ? 'text-yellow-400 opacity-100 scale-110' : 'text-muted-foreground/80 opacity-80 scale-100'
-                        }`}>
-                        {strike ? '⚡ THUNDER STRIKE! ⚡' : '⚡ Powering up...'}
-                    </p>
+                {/* PROGRESS BAR */}
+                <div className="w-64 h-1.5 bg-secondary/50 dark:bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
+                    <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600 dark:from-yellow-600 dark:via-yellow-400 dark:to-yellow-600 transition-all duration-200 ease-out"
+                        style={{ width: `${progress}%` }}
+                    />
+                    {/* Glint effect on bar */}
+                    <div className="absolute inset-y-0 left-0 w-full bg-white/30 dark:bg-white/20 -translate-x-full animate-shimmer" />
                 </div>
             </div>
 
+            {/* CSS ANIMATIONS */}
             <style>{`
-                @keyframes lightning-strike {
-                    0% {
-                        opacity: 0;
-                        transform: scaleY(0);
-                        filter: brightness(3);
-                    }
-                    10% {
-                        opacity: 1;
-                    }
-                    50% {
-                        transform: scaleY(1);
-                        filter: brightness(2.5);
-                    }
-                    100% {
-                        opacity: 0.95;
-                        transform: scaleY(1);
-                        filter: brightness(2);
-                    }
+                @keyframes strike-down {
+                    0% { transform: translateX(-50%) scaleY(0); opacity: 0; }
+                    10% { opacity: 1; }
+                    100% { transform: translateX(-50%) scaleY(1); opacity: 0; }
                 }
-                
-                @keyframes impact-pulse {
-                    0% {
-                        opacity: 0;
-                        transform: scale(0.3);
-                    }
-                    40% {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                    100% {
-                        opacity: 0;
-                        transform: scale(2);
-                    }
+                @keyframes flash-fade {
+                    0% { opacity: 0.2; }
+                    100% { opacity: 0; }
                 }
-                
-                @keyframes spark-fade {
-                    0% {
-                        opacity: 1;
-                        height: 40px;
-                    }
-                    100% {
-                        opacity: 0;
-                        height: 70px;
-                    }
+                @keyframes pulse-fast {
+                    0% { transform: scale(0.8); opacity: 0.8; }
+                    100% { transform: scale(1.5); opacity: 0; }
                 }
-                
-                @keyframes shockwave {
-                    0% {
-                        width: 200px;
-                        opacity: 1;
-                    }
-                    100% {
-                        width: 600px;
-                        opacity: 0;
-                    }
+                @keyframes shimmer {
+                    100% { transform: translateX(100%); }
                 }
-                
-                @keyframes grow {
-                    from { transform: scaleX(0); }
-                    to { transform: scaleX(1); }
-                }
+                .animate-strike-down { animation: strike-down 0.2s ease-out forwards; }
+                .animate-flash-fade { animation: flash-fade 0.3s ease-out forwards; }
+                .animate-pulse-fast { animation: pulse-fast 0.4s ease-out forwards; }
+                .animate-shimmer { animation: shimmer 2s infinite; }
             `}</style>
         </div>
     );
